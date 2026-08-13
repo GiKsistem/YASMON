@@ -1,0 +1,25 @@
+{
+  "name": "YASMON AUTOMOTIVE INDONESIA - Sistem Penjualan",
+  "short_name": "Yasmon POS",
+  "description": "Sistem Penjualan YASMON AUTOMOTIVE INDONESIA",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F0EEE6",
+  "theme_color": "#14181C",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
