@@ -4,18 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>YASMON AUTOMOTIVE INDONESIA — Sistem Penjualan</title>
-
-<!-- ====== PWA: bisa di-install sebagai aplikasi di laptop & HP ====== -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#14181C">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Yasmon POS">
-<!-- ==================================================================== -->
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -770,6 +758,28 @@
 
 <div id="toast"></div>
 
+<!-- ============ FIREBASE (database bersama, real-time, semua device) ============ -->
+<!-- 1. Buat project di https://console.firebase.google.com (gratis)
+     2. Aktifkan "Firestore Database" (mode production / test, boleh dua-duanya untuk mulai)
+     3. Buka Project settings > General > scroll ke "Your apps" > tambah app Web (</>)
+     4. Salin isi firebaseConfig dari sana, ganti nilai di bawah ini -->
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAOIDCxRmquyZ-7HEA0YCXz1hlAHrw-Sc4",
+    authDomain: "yasmon-928a2.firebaseapp.com",
+    projectId: "yasmon-928a2",
+    storageBucket: "yasmon-928a2.firebasestorage.app",
+    messagingSenderId: "247831647964",
+    appId: "1:247831647964:web:608691fd1694dcb8218619"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  // Supaya tetap bisa dipakai walau koneksi internet putus sebentar (opsional tapi disarankan)
+  db.enablePersistence().catch(()=>{});
+</script>
+
 <script>
 /* ============ DATA AWAL (diimpor dari spreadsheet) ============ */
 const SEED = {"products": [{"kode": "RTV30", "nama": "RTV Grey 30 Gram", "stok": 26, "hargaModal": 8000.0}, {"kode": "EPO15", "nama": "Epo putty 15 Gram", "stok": 793, "hargaModal": 4350.0}, {"kode": "EPO50", "nama": "Epo putty 50 Gram", "stok": 60, "hargaModal": 14600.0}, {"kode": "EPO100", "nama": "Epo putty 100 Gram", "stok": 94, "hargaModal": 26350.0}, {"kode": "RTV85", "nama": "RTV Grey 85 Gram", "stok": 0, "hargaModal": 14000.0}, {"kode": "Steel 56", "nama": "Quick Epoxy Grey 56,7 Gram", "stok": 0, "hargaModal": 11000.0}], "sales": [{"tanggal": "2026-06-11", "customer": "Dio motor", "kode": "EPO15", "qty": 288.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 2160000.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Dio motor", "kode": "EPO50", "qty": 288.0, "harga": 19900.0, "hargaModal": 14600.0, "total": 5731200.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Dio motor", "kode": "EPO100", "qty": 144.0, "harga": 35600.0, "hargaModal": 26350.0, "total": 5126400.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Perisay motor", "kode": "EPO50", "qty": 144.0, "harga": 19000.0, "hargaModal": 14600.0, "total": 2736000.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Kasda motor", "kode": "EPO15", "qty": 144.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 1123200.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Pita bunga", "kode": "EPO15", "qty": 144.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 1123200.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Doni motor", "kode": "EPO15", "qty": 432.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 3240000.0, "status": "lunas"}, {"tanggal": "2026-06-13", "customer": "Citra motor", "kode": "EPO15", "qty": 864.0, "harga": 6800.0, "hargaModal": 4350.0, "total": 5875200.0, "status": "lunas"}, {"tanggal": "2026-06-13", "customer": "Aisyah motorindo", "kode": "EPO50", "qty": 144.0, "harga": 19000.0, "hargaModal": 14600.0, "total": 2736000.0, "status": "lunas"}, {"tanggal": "2026-06-15", "customer": "Fhariz motor", "kode": "EPO15", "qty": 432.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 3240000.0, "status": "lunas"}, {"tanggal": "2026-06-15", "customer": "Curga motor 2", "kode": "EPO15", "qty": 144.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 1123200.0, "status": "lunas"}, {"tanggal": "2026-06-15", "customer": "Curga motor 2", "kode": "RTV85", "qty": 96.0, "harga": 19500.0, "hargaModal": 14000.0, "total": 1872000.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Bengkel fendy motor", "kode": "EPO15", "qty": 6.0, "harga": 8190.0, "hargaModal": 4350.0, "total": 49140.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Bengkel fendy motor", "kode": "RTV85", "qty": 12.0, "harga": 19900.0, "hargaModal": 14000.0, "total": 238800.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Raffah motor", "kode": "EPO15", "qty": 12.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 93600.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Raffah motor", "kode": "RTV85", "qty": 12.0, "harga": 19900.0, "hargaModal": 14000.0, "total": 238800.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Sampel untuk citra motor", "kode": "RTV85", "qty": 2.0, "harga": 1.0, "hargaModal": 14000.0, "total": 2.0, "status": "lunas"}, {"tanggal": "2026-07-12", "customer": "Aisyah motorindo", "kode": "EPO100", "qty": 50.0, "harga": 35600.0, "hargaModal": 26350.0, "total": 1780000.0, "status": "lunas"}, {"tanggal": "2026-07-12", "customer": "Hanif motor ( sampel )", "kode": "RTV85", "qty": 1.0, "harga": 1.0, "hargaModal": 14000.0, "total": 1.0, "status": "lunas"}, {"tanggal": "2026-07-12", "customer": "Suchi motor ( sampel )", "kode": "RTV85", "qty": 1.0, "harga": 1.0, "hargaModal": 14000.0, "total": 1.0, "status": "lunas"}, {"tanggal": "2026-07-14", "customer": "Aisyah motorindo", "kode": "RTV30", "qty": 50.0, "harga": 15000.0, "hargaModal": 8000.0, "total": 750000.0, "status": "lunas"}, {"tanggal": "2026-07-14", "customer": "Aisyah motorindo", "kode": "RTV85", "qty": 12.0, "harga": 22900.0, "hargaModal": 14000.0, "total": 274800.0, "status": "lunas"}, {"tanggal": "2026-07-14", "customer": "Rion ( sales )", "kode": "RTV30", "qty": 20.0, "harga": 10000.0, "hargaModal": 8000.0, "total": 200000.0, "status": "belum"}, {"tanggal": "2026-07-15", "customer": "Dio motor ( sampel )", "kode": "RTV85", "qty": 2.0, "harga": 1.0, "hargaModal": 14000.0, "total": 2.0, "status": "lunas"}, {"tanggal": "2026-07-21", "customer": "Amanah global motor", "kode": "RTV30", "qty": 24.0, "harga": 15000.0, "hargaModal": 8000.0, "total": 360000.0, "status": "lunas"}, {"tanggal": "2026-07-21", "customer": "Suchi motor", "kode": "RTV85", "qty": 6.0, "harga": 25000.0, "hargaModal": 14000.0, "total": 150000.0, "status": "lunas"}, {"tanggal": "2026-07-21", "customer": "Suchi motor", "kode": "EPO15", "qty": 12.0, "harga": 8000.0, "hargaModal": 4350.0, "total": 96000.0, "status": "lunas"}, {"tanggal": "2026-07-22", "customer": "Deris ( sales )", "kode": "EPO50", "qty": 12.0, "harga": 16900.0, "hargaModal": 14600.0, "total": 202800.0, "status": "lunas"}, {"tanggal": "2026-07-22", "customer": "Deris ( sales )", "kode": "EPO15", "qty": 24.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 132000.0, "status": "lunas"}, {"tanggal": "2026-07-23", "customer": "Pak etek ( umum )", "kode": "EPO15", "qty": 2.0, "harga": 5000.0, "hargaModal": 4350.0, "total": 10000.0, "status": "lunas"}, {"tanggal": "2026-07-23", "customer": "Riva motor", "kode": "EPO15", "qty": 720.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 3960000.0, "status": "lunas"}, {"tanggal": "2026-07-24", "customer": "Ronal motor", "kode": "EPO15", "qty": 720.0, "harga": 5150.0, "hargaModal": 4350.0, "total": 3708000.0, "status": "lunas"}, {"tanggal": "2026-07-26", "customer": "Deris ( sales )", "kode": "EPO15", "qty": 84.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 462000.0, "status": "lunas"}, {"tanggal": "2026-07-27", "customer": "Simpang tiga motor", "kode": "EPO50", "qty": 72.0, "harga": 19000.0, "hargaModal": 14600.0, "total": 1368000.0, "status": "belum"}, {"tanggal": "2026-07-30", "customer": "CItra II loenang", "kode": "RTV85", "qty": 144.0, "harga": 19000.0, "hargaModal": 14000.0, "total": 2736000.0, "status": "lunas"}, {"tanggal": "2026-07-30", "customer": "CItra II loenang", "kode": "EPO50", "qty": 144.0, "harga": 19000.0, "hargaModal": 14600.0, "total": 2736000.0, "status": "lunas"}, {"tanggal": "2026-07-30", "customer": "CItra II loenang", "kode": "EPO15", "qty": 288.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 2160000.0, "status": "lunas"}, {"tanggal": "2026-08-02", "customer": "Deris ( sales )", "kode": "EPO15", "qty": 144.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 792000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "customer": "AJMP", "kode": "RTV30", "qty": 288.0, "harga": 8900.0, "hargaModal": 8000.0, "total": 2563200.0, "status": "lunas"}, {"tanggal": "2026-08-04", "customer": "AJMP", "kode": "RTV85", "qty": 144.0, "harga": 17000.0, "hargaModal": 14000.0, "total": 2448000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "customer": "AJMP", "kode": "EPO15", "qty": 720.0, "harga": 5290.0, "hargaModal": 4350.0, "total": 3808800.0, "status": "lunas"}, {"tanggal": "2026-08-04", "customer": "AJMP", "kode": "EPO50", "qty": 2160.0, "harga": 17000.0, "hargaModal": 14600.0, "total": 36720000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Pratama motor", "kode": "RTV30", "qty": 120.0, "harga": 13000.0, "hargaModal": 8000.0, "total": 1560000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Pratama motor", "kode": "EPO15", "qty": 72.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 540000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Ikhsan motor", "kode": "EPO15", "qty": 12.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 90000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Vivian motor", "kode": "EPO15", "qty": 12.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 90000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Ronal motor", "kode": "Steel 56", "qty": 144.0, "harga": 13000.0, "hargaModal": 11000.0, "total": 1872000.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "ILHAM MOTOR", "kode": "EPO15", "qty": 144.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 1123200.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "ILHAM MOTOR", "kode": "RTV30", "qty": 24.0, "harga": 15000.0, "hargaModal": 8000.0, "total": 360000.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "Cahaya motor", "kode": "EPO15", "qty": 24.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 187200.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "Cahaya motor", "kode": "RTV30", "qty": 24.0, "harga": 13000.0, "hargaModal": 8000.0, "total": 312000.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "Dio (sales)", "kode": "EPO15", "qty": 99.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 544500.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "Deris (sales)", "kode": "EPO15", "qty": 144.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 792000.0, "status": "belum"}], "purchases": [{"tanggal": "2026-06-05", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 2160.0, "harga": 4350.0, "total": 9396000.0, "status": "lunas"}, {"tanggal": "2026-06-05", "supplier": "CV Maju lestari abadi", "kode": "EPO50", "qty": 576.0, "harga": 14600.0, "total": 8409600.0, "status": "lunas"}, {"tanggal": "2026-06-06", "supplier": "CV Maju lestari abadi", "kode": "EPO100", "qty": 144.0, "harga": 26350.0, "total": 3794400.0, "status": "lunas"}, {"tanggal": "2026-06-23", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 1440.0, "harga": 4350.0, "total": 6264000.0, "status": "lunas"}, {"tanggal": "2026-06-23", "supplier": "CV Maju lestari abadi", "kode": "EPO50", "qty": 288.0, "harga": 14600.0, "total": 4204800.0, "status": "lunas"}, {"tanggal": "2026-06-23", "supplier": "CV Maju lestari abadi", "kode": "RTV85", "qty": 144.0, "harga": 14000.0, "total": 2016000.0, "status": "lunas"}, {"tanggal": "2026-07-07", "supplier": "CV Maju lestari abadi", "kode": "RTV30", "qty": 288.0, "harga": 8000.0, "total": 2304000.0, "status": "lunas"}, {"tanggal": "2026-07-07", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 720.0, "harga": 4350.0, "total": 3132000.0, "status": "lunas"}, {"tanggal": "2026-07-07", "supplier": "CV Maju lestari abadi", "kode": "EPO100", "qty": 144.0, "harga": 26350.0, "total": 3794400.0, "status": "lunas"}, {"tanggal": "2026-07-27", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 1440.0, "harga": 4350.0, "total": 6264000.0, "status": "lunas"}, {"tanggal": "2026-07-27", "supplier": "CV Maju lestari abadi", "kode": "RTV85", "qty": 144.0, "harga": 14000.0, "total": 2016000.0, "status": "lunas"}, {"tanggal": "2026-07-27", "supplier": "CV Maju lestari abadi", "kode": "Steel 56", "qty": 144.0, "harga": 11000.0, "total": 1584000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "supplier": "CV Maju lestari abadi", "kode": "RTV85", "qty": 144.0, "harga": 14000.0, "total": 2016000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "supplier": "CV Maju lestari abadi", "kode": "RTV30", "qty": 288.0, "harga": 8000.0, "total": 2304000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 720.0, "harga": 4350.0, "total": 3132000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "supplier": "CV Maju lestari abadi", "kode": "EPO50", "qty": 2160.0, "harga": 14600.0, "total": 31536000.0, "status": "lunas"}], "expenses": [{"keterangan": "Lakban + spidol", "jumlah": 22000.0}, {"keterangan": "Ekpedisi SBY - PDG", "jumlah": 400000.0}, {"keterangan": "Ekpedisi PDG - Pasbar", "jumlah": 150000.0}, {"keterangan": "Lakban + print", "jumlah": 18000.0}, {"keterangan": "Titip barang", "jumlah": 100000.0}, {"keterangan": "BBM", "jumlah": 15000.0}, {"keterangan": "Ekpedisi SBY - PDG", "jumlah": 323000.0}, {"keterangan": "Ekpedisi pdg- alahan panjang", "jumlah": 102500.0}, {"keterangan": "Ekpedisi pdg jambi pessel dmr", "jumlah": 30500.0}, {"keterangan": "admin transfer", "jumlah": 2500.0}, {"keterangan": "admin transfer", "jumlah": 3000.0}, {"keterangan": "Ekpedisi SBY - PDG", "jumlah": 220000.0}, {"keterangan": "Ekpedisi PDG - SSL", "jumlah": 10000.0}, {"keterangan": "Ekpedisi PDG - Pasbar", "jumlah": 20000.0}, {"keterangan": "Ekpedisi PDG - Pasbar", "jumlah": 20000.0}, {"keterangan": "Pinjam agik", "jumlah": 56000.0}, {"keterangan": "Ekpedisi pdg - ssl", "jumlah": 30000.0}, {"keterangan": "Insentif ferdi", "jumlah": 300000.0}, {"keterangan": "biaya pengiriman pessel (in)", "jumlah": 50000.0}, {"keterangan": "ekpedisi - sby - padang", "jumlah": 906000.0}, {"keterangan": "Biaya rental mobil", "jumlah": 350000.0}, {"keterangan": "biaya BBM", "jumlah": 400000.0}, {"keterangan": "biaya supir", "jumlah": 200000.0}, {"keterangan": "biaya makan + roko supir", "jumlah": 215000.0}, {"keterangan": "biaya admin", "jumlah": 6500.0}]};
@@ -791,16 +801,66 @@ let cart = [];
 let lastSavedInvoice = null;
 let editingKode = null;
 
-/* ============ STORAGE HELPERS ============ */
+/* ============ STORAGE HELPERS (Firestore, real-time, shared semua device) ============ */
+// Semua data disimpan dalam SATU dokumen Firestore: sistem-penjualan/data
+// Setiap device yang buka app ini otomatis "berlangganan" (onSnapshot) ke dokumen itu.
+// Begitu ada device lain yang simpan transaksi, dokumen berubah, dan SEMUA device
+// yang sedang terbuka langsung dapat data terbaru tanpa perlu refresh manual.
+const FIREBASE_DOC = db.collection('sistem-penjualan').doc('data');
+let firestoreCache = {};
+let firestoreReady = false;
+let applyingRemoteUpdate = false;
+
+function initFirebaseSync(){
+  return new Promise((resolve)=>{
+    FIREBASE_DOC.onSnapshot(async (snap)=>{
+      firestoreCache = snap.data() || {};
+      if(!firestoreReady){
+        firestoreReady = true;
+        resolve();
+        return;
+      }
+      // Perubahan ini datang dari device LAIN (bukan dari tulisan kita sendiri) -> reload & render ulang
+      if(!snap.metadata.hasPendingWrites){
+        applyingRemoteUpdate = true;
+        await reloadStateFromCache();
+        renderAll();
+        applyingRemoteUpdate = false;
+        showToast('Data diperbarui otomatis (perubahan dari device lain).');
+      }
+    }, (err)=>{
+      console.error('Firestore error', err);
+      showToast('Gagal terhubung ke server data. Cek koneksi internet.', true);
+      resolve();
+    });
+  });
+}
+
+// Menyalin ulang firestoreCache ke variabel-variabel state global aplikasi
+async function reloadStateFromCache(){
+  products = firestoreCache.products || [];
+  invoices = firestoreCache.invoices || [];
+  purchases = firestoreCache.purchases || [];
+  expenses = firestoreCache.expenses || [];
+  invoiceCounter = firestoreCache.invoiceCounter || 0;
+  purchaseCounter = firestoreCache.purchaseCounter || 0;
+  companyProfile = firestoreCache.companyProfile || {alamat:'', hp:'', ig:'', rek:''};
+  kasProfile = firestoreCache.kasProfile || kasProfile;
+  document.getElementById('cp-alamat').value = companyProfile.alamat||'';
+  document.getElementById('cp-hp').value = companyProfile.hp||'';
+  document.getElementById('cp-ig').value = companyProfile.ig||'';
+  document.getElementById('cp-rek').value = companyProfile.rek||'';
+  document.getElementById('kf-suntik').value = kasProfile.suntikanBaru||0;
+  document.getElementById('kf-balik').value = kasProfile.pengembalianBaru||0;
+}
+
 async function loadKey(key, fallback){
-  try{
-    const r = await window.storage.get(key, false);
-    return r ? JSON.parse(r.value) : fallback;
-  }catch(e){ return fallback; }
+  return (key in firestoreCache) ? firestoreCache[key] : fallback;
 }
 async function saveKey(key, value){
-  try{ await window.storage.set(key, JSON.stringify(value), false); }
-  catch(e){ console.error('Gagal menyimpan', key, e); showToast('Gagal menyimpan data. Coba lagi.', true); }
+  firestoreCache[key] = value;
+  try{ await FIREBASE_DOC.set({ [key]: value }, { merge: true }); }
+  catch(e){ console.error('Gagal menyimpan', key, e); showToast('Gagal menyimpan data. Cek koneksi internet.', true); }
 }
 
 /* ============ UTIL ============ */
@@ -900,6 +960,7 @@ document.getElementById('nav').addEventListener('click', async e=>{
 
 /* ============ INIT ============ */
 async function init(){
+  await initFirebaseSync();
   products = await loadKey('products', []);
   invoices = await loadKey('invoices', []);
   purchases = await loadKey('purchases', []);
@@ -942,6 +1003,12 @@ async function init(){
   document.getElementById('kf-suntik').value = kasProfile.suntikanBaru||0;
   document.getElementById('kf-balik').value = kasProfile.pengembalianBaru||0;
 
+  renderAll();
+}
+
+/* Dipanggil saat pertama kali buka, DAN setiap kali ada perubahan data
+   dari device lain (real-time sync via Firestore). */
+function renderAll(){
   renderDashboard();
   renderStokTable();
   populateBarangSelect();
@@ -949,6 +1016,7 @@ async function init(){
   renderTagihanTable();
   renderPembelianTable();
   renderPengeluaranTable();
+  if(document.getElementById('view-margin')?.classList.contains('active')) renderMarginTable();
 }
 
 function seedFromSpreadsheet(){
@@ -2162,15 +2230,6 @@ document.getElementById('pengeluaran-table').addEventListener('click', async e=>
     showToast('Pengeluaran dihapus.');
   }
 });
-</script>
-
-<!-- Daftarkan service worker supaya aplikasi bisa di-install & dibuka offline -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
-    });
-  }
 </script>
 </body>
 </html>
