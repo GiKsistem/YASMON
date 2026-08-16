@@ -254,11 +254,13 @@
     <nav id="nav">
       <button data-view="dashboard" class="active"><span class="nav-num">01</span>Dashboard</button>
       <button data-view="stok"><span class="nav-num">02</span>Stok Barang</button>
-      <button data-view="faktur"><span class="nav-num">03</span>Buat Faktur</button>
-      <button data-view="tagihan"><span class="nav-num">04</span>Faktur &amp; Tagihan</button>
-      <button data-view="margin"><span class="nav-num">05</span>Margin per Toko</button>
-      <button data-view="pembelian"><span class="nav-num">06</span>Pembelian Supplier</button>
-      <button data-view="pengeluaran"><span class="nav-num">07</span>Pengeluaran</button>
+      <button data-view="toko"><span class="nav-num">03</span>Daftar Toko</button>
+      <button data-view="faktur"><span class="nav-num">04</span>Buat Faktur</button>
+      <button data-view="tagihan"><span class="nav-num">05</span>Faktur &amp; Tagihan</button>
+      <button data-view="tren"><span class="nav-num">06</span>Tren Pembayaran</button>
+      <button data-view="margin"><span class="nav-num">07</span>Margin per Toko</button>
+      <button data-view="pembelian"><span class="nav-num">08</span>Pembelian Supplier</button>
+      <button data-view="pengeluaran"><span class="nav-num">09</span>Pengeluaran</button>
     </nav>
     <div class="sidebar-foot">DATA TERSIMPAN OTOMATIS</div>
   </aside>
@@ -308,6 +310,19 @@
       </div>
 
       <div class="panel">
+        <h3>Statistik Toko &amp; Pembayaran</h3>
+        <div class="grid-cards">
+          <div class="card"><div class="tag">Total Toko Terdaftar</div><div class="val" id="d-total-toko">0</div></div>
+          <div class="card success"><div class="tag">Faktur Lunas</div><div class="val" id="d-faktur-lunas">0</div></div>
+          <div class="card danger"><div class="tag">Faktur Belum Lunas</div><div class="val" id="d-faktur-belum">0</div></div>
+          <div class="card steel"><div class="tag">Rata-rata Hari Pelunasan</div><div class="val" id="d-rata-pelunasan">-</div></div>
+          <div class="card success"><div class="tag">Lunas Lebih Cepat</div><div class="val" id="d-lebih-cepat">0</div></div>
+          <div class="card"><div class="tag">Lunas Tepat Waktu</div><div class="val" id="d-tepat-waktu">0</div></div>
+          <div class="card danger"><div class="tag">Terlambat</div><div class="val" id="d-terlambat">0</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
         <h3>Suntikan / Pengembalian Dana (Baru)</h3>
         <p class="hint">Isi kalau ada suntikan dana masuk atau pengembalian modal yang baru terjadi — otomatis nambah/ngurangin Saldo Kas di atas.</p>
         <div class="form-row" style="max-width:420px;">
@@ -340,6 +355,10 @@
           <div class="field"><input type="text" id="cp-ig"></div>
         </div>
         <button class="btn btn-primary" id="btn-save-profile">Simpan Profil Toko</button>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin:-6px 0 16px;">
+        <button class="btn btn-dark" id="btn-export-dashboard">Export Excel</button>
       </div>
 
       <div class="panel">
@@ -398,9 +417,73 @@
         </div>
         <table>
           <thead><tr>
-            <th>Kode</th><th>Nama Barang</th><th class="right">Harga Modal</th><th class="center">Stok</th><th class="right">Aksi</th>
+            <th>Kode</th><th>Nama Barang</th><th class="right">Harga Modal</th><th class="center">Stok</th><th class="right">Total Modal</th><th class="right">Aksi</th>
           </tr></thead>
           <tbody id="stok-table"></tbody>
+          <tfoot>
+            <tr style="border-top:2px solid var(--ink);font-weight:700;">
+              <td colspan="4" class="right">TOTAL MODAL BARANG (STOK)</td>
+              <td class="right num tm-total-cell" style="cursor:pointer;letter-spacing:2px;" title="Klik 2x pada baris harga modal untuk melihat">••••••</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- DAFTAR TOKO -->
+    <section class="view" id="view-toko">
+      <div class="page-head">
+        <h2>Daftar Toko</h2>
+        <p>Daftarkan toko terlebih dahulu sebelum toko dipakai membuat order/faktur. ID Toko harus unik.</p>
+      </div>
+
+      <div class="panel">
+        <h3 id="toko-form-title">Daftarkan Toko</h3>
+        <div class="form-row">
+          <div class="field mono">
+            <label>ID Toko</label>
+            <input type="text" id="tk-id">
+          </div>
+          <div class="field">
+            <label>Nama Toko</label>
+            <input type="text" id="tk-nama">
+          </div>
+          <div class="field">
+            <label>No. HP</label>
+            <input type="text" id="tk-hp" placeholder="0812xxxxxxx">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field" style="flex:2;">
+            <label>Alamat</label>
+            <input type="text" id="tk-alamat">
+          </div>
+          <div class="field" style="flex:2;">
+            <label>Keterangan</label>
+            <input type="text" id="tk-keterangan" placeholder="mis. kategori SALES / SAMPEL / UMUM">
+          </div>
+        </div>
+        <div id="tk-error" style="display:none;color:var(--danger);font-size:13px;margin:-4px 0 10px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-primary" id="btn-save-toko">+ Daftarkan Toko</button>
+          <button class="btn btn-ghost" id="btn-cancel-edit-toko" style="display:none;">Batal Edit</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="table-toolbar">
+          <h3 style="margin:0;">Daftar Semua Toko</h3>
+          <div class="search-box"><input type="text" id="toko-search" placeholder="Cari ID / nama / No. HP toko..."></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+          <button class="btn btn-dark btn-sm" id="btn-export-toko">Export Excel</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>ID Toko</th><th>Nama Toko</th><th>No. HP</th><th>Alamat</th><th>Keterangan</th><th class="right">Aksi</th>
+          </tr></thead>
+          <tbody id="toko-table"></tbody>
         </table>
       </div>
     </section>
@@ -410,6 +493,25 @@
       <div class="page-head">
         <h2>Buat Faktur</h2>
         <p>T.O.P 0 hari = Cash (status faktur & stempel tidak dibuat, cukup label "Pembayaran: Cash"). T.O.P diisi minimal 1 hari = Kredit (Belum Lunas sampai Anda pencet tombol Lunas, ada tanggal jatuh tempo &amp; stempel).</p>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top:0;">Pilih Toko (opsional)</h3>
+        <p class="hint">Cari toko yang sudah terdaftar berdasarkan ID atau Nama Toko. Info ini hanya dipakai di halaman aplikasi &amp; Tren Pembayaran — tidak akan muncul di hasil print faktur.</p>
+        <div class="form-row" style="position:relative;">
+          <div class="field" style="flex:2;">
+            <label>Masukkan ID atau Nama Toko</label>
+            <input type="text" id="f-pilih-toko" placeholder="mis. SSL-YMA1-DIO atau Dio Motor" autocomplete="off">
+            <div id="f-pilih-toko-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,.12);z-index:20;max-height:220px;overflow:auto;"></div>
+          </div>
+          <div class="field" id="f-toko-selected-wrap" style="display:none;">
+            <label>Toko Terpilih</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="badge" id="f-toko-selected-label" style="background:var(--purple-tint);color:var(--purple);"></span>
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-clear-toko-selected">Batal</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="panel">
@@ -504,11 +606,89 @@
           <button class="btn btn-dark" id="btn-export-tagihan" style="flex:0 0 auto;">⬇ Export ke Excel</button>
         </div>
         <p class="hint" style="margin:-4px 0 10px;">Klik dua kali (double click) pada baris No. Faktur untuk membuka/menutup rincian barang (SKU) faktur tersebut.</p>
-        <table>
+        <table style="font-size:12px;">
           <thead><tr id="tagihan-thead">
-            <th>No. Faktur</th><th>Tanggal</th><th>Pelanggan</th><th class="right">Total</th><th class="center">Status</th><th class="right">Aksi</th>
+            <th>No. Faktur</th><th>Tanggal</th><th>ID Pelanggan</th><th>Pelanggan</th><th class="right">Total</th><th class="center">Status</th><th class="right">Aksi</th>
           </tr></thead>
           <tbody id="tagihan-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TREN PEMBAYARAN -->
+    <section class="view" id="view-tren">
+      <div class="page-head">
+        <h2>Tren Pembayaran</h2>
+        <p>Lama pelunasan dihitung dari Tanggal Faktur sampai Tanggal Pelunasan (bukan dari jatuh tempo).</p>
+      </div>
+
+      <div class="panel">
+        <h3>Ringkasan</h3>
+        <div class="grid-cards">
+          <div class="card"><div class="tag">Total Faktur</div><div class="val" id="tr-total-faktur">0</div></div>
+          <div class="card success"><div class="tag">Faktur Lunas</div><div class="val" id="tr-total-lunas">0</div></div>
+          <div class="card danger"><div class="tag">Faktur Belum Lunas</div><div class="val" id="tr-total-belum">0</div></div>
+          <div class="card steel"><div class="tag">Rata-rata Lama Pelunasan</div><div class="val" id="tr-rata">-</div></div>
+          <div class="card success"><div class="tag">Pelunasan Tercepat</div><div class="val" id="tr-tercepat">-</div></div>
+          <div class="card danger"><div class="tag">Pelunasan Terlama</div><div class="val" id="tr-terlama">-</div></div>
+          <div class="card success"><div class="tag">Lunas Lebih Cepat</div><div class="val" id="tr-lebih-cepat">0</div></div>
+          <div class="card"><div class="tag">Lunas Tepat Waktu</div><div class="val" id="tr-tepat-waktu">0</div></div>
+          <div class="card danger"><div class="tag">Terlambat</div><div class="val" id="tr-terlambat">0</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Tren Rata-rata Lama Pelunasan per Bulan</h3>
+        <div id="tr-chart" style="display:flex;align-items:flex-end;gap:6px;min-height:140px;padding-top:10px;overflow-x:auto;"></div>
+      </div>
+
+      <div class="panel" id="tr-riwayat-toko-panel" style="display:none;">
+        <div class="table-toolbar">
+          <h3 style="margin:0;" id="tr-riwayat-toko-title">Riwayat Toko</h3>
+          <button class="btn btn-ghost btn-sm" id="btn-tutup-riwayat-toko">Tutup</button>
+        </div>
+        <div class="grid-cards" id="tr-riwayat-toko-stats"></div>
+      </div>
+
+      <div class="panel">
+        <div class="table-toolbar">
+          <div class="search-box"><input type="text" id="tren-search" placeholder="Cari nama toko / ID toko / no. faktur..."></div>
+          <div class="field" style="min-width:150px;flex:0 0 auto;">
+            <label>Bulan</label>
+            <select id="tren-bulan-filter"><option value="">Semua</option></select>
+          </div>
+          <div class="field" style="min-width:120px;flex:0 0 auto;">
+            <label>Tahun</label>
+            <select id="tren-tahun-filter"><option value="">Semua</option></select>
+          </div>
+          <div class="field" style="min-width:170px;flex:0 0 auto;">
+            <label>Status</label>
+            <select id="tren-status-filter">
+              <option value="">Semua Status</option>
+              <option value="belum">Belum Lunas</option>
+              <option value="cepat">Lunas Lebih Cepat</option>
+              <option value="tepat">Lunas Tepat Waktu</option>
+              <option value="telat">Terlambat</option>
+            </select>
+          </div>
+          <div class="field" style="min-width:200px;flex:0 0 auto;">
+            <label>Urutkan</label>
+            <select id="tren-sort">
+              <option value="baru" selected>Terbaru</option>
+              <option value="lama">Terlama</option>
+              <option value="pelunasan-cepat">Pelunasan Tercepat</option>
+              <option value="pelunasan-lama">Pelunasan Terlama</option>
+              <option value="nilai-besar">Nilai Terbesar</option>
+              <option value="nilai-kecil">Nilai Terkecil</option>
+            </select>
+          </div>
+          <button class="btn btn-dark" id="btn-export-tren" style="flex:0 0 auto;">⬇ Export ke Excel</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>No Faktur</th><th>ID Toko</th><th>Nama Toko</th><th>Tanggal Faktur</th><th class="center">Termin</th><th>Jatuh Tempo</th><th>Tanggal Pelunasan</th><th class="center">Lama Pelunasan</th><th class="center">Status</th>
+          </tr></thead>
+          <tbody id="tren-table"></tbody>
         </table>
       </div>
     </section>
@@ -619,6 +799,7 @@
             </select>
           </div>
           <div class="search-box"><input type="text" id="pembelian-search" placeholder="Cari supplier / kode..."></div>
+          <button class="btn btn-dark" id="btn-export-pembelian" style="flex:0 0 auto;">⬇ Export ke Excel</button>
         </div>
         <table>
           <thead><tr id="pembelian-thead">
@@ -788,11 +969,41 @@
 /* ============ DATA AWAL (diimpor dari spreadsheet) ============ */
 const SEED = {"products": [{"kode": "RTV30", "nama": "RTV Grey 30 Gram", "stok": 26, "hargaModal": 8000.0}, {"kode": "EPO15", "nama": "Epo putty 15 Gram", "stok": 793, "hargaModal": 4350.0}, {"kode": "EPO50", "nama": "Epo putty 50 Gram", "stok": 60, "hargaModal": 14600.0}, {"kode": "EPO100", "nama": "Epo putty 100 Gram", "stok": 94, "hargaModal": 26350.0}, {"kode": "RTV85", "nama": "RTV Grey 85 Gram", "stok": 0, "hargaModal": 14000.0}, {"kode": "Steel 56", "nama": "Quick Epoxy Grey 56,7 Gram", "stok": 0, "hargaModal": 11000.0}], "sales": [{"tanggal": "2026-06-11", "customer": "Dio motor", "kode": "EPO15", "qty": 288.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 2160000.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Dio motor", "kode": "EPO50", "qty": 288.0, "harga": 19900.0, "hargaModal": 14600.0, "total": 5731200.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Dio motor", "kode": "EPO100", "qty": 144.0, "harga": 35600.0, "hargaModal": 26350.0, "total": 5126400.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Perisay motor", "kode": "EPO50", "qty": 144.0, "harga": 19000.0, "hargaModal": 14600.0, "total": 2736000.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Kasda motor", "kode": "EPO15", "qty": 144.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 1123200.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Pita bunga", "kode": "EPO15", "qty": 144.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 1123200.0, "status": "lunas"}, {"tanggal": "2026-06-11", "customer": "Doni motor", "kode": "EPO15", "qty": 432.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 3240000.0, "status": "lunas"}, {"tanggal": "2026-06-13", "customer": "Citra motor", "kode": "EPO15", "qty": 864.0, "harga": 6800.0, "hargaModal": 4350.0, "total": 5875200.0, "status": "lunas"}, {"tanggal": "2026-06-13", "customer": "Aisyah motorindo", "kode": "EPO50", "qty": 144.0, "harga": 19000.0, "hargaModal": 14600.0, "total": 2736000.0, "status": "lunas"}, {"tanggal": "2026-06-15", "customer": "Fhariz motor", "kode": "EPO15", "qty": 432.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 3240000.0, "status": "lunas"}, {"tanggal": "2026-06-15", "customer": "Curga motor 2", "kode": "EPO15", "qty": 144.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 1123200.0, "status": "lunas"}, {"tanggal": "2026-06-15", "customer": "Curga motor 2", "kode": "RTV85", "qty": 96.0, "harga": 19500.0, "hargaModal": 14000.0, "total": 1872000.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Bengkel fendy motor", "kode": "EPO15", "qty": 6.0, "harga": 8190.0, "hargaModal": 4350.0, "total": 49140.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Bengkel fendy motor", "kode": "RTV85", "qty": 12.0, "harga": 19900.0, "hargaModal": 14000.0, "total": 238800.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Raffah motor", "kode": "EPO15", "qty": 12.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 93600.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Raffah motor", "kode": "RTV85", "qty": 12.0, "harga": 19900.0, "hargaModal": 14000.0, "total": 238800.0, "status": "lunas"}, {"tanggal": "2026-07-02", "customer": "Sampel untuk citra motor", "kode": "RTV85", "qty": 2.0, "harga": 1.0, "hargaModal": 14000.0, "total": 2.0, "status": "lunas"}, {"tanggal": "2026-07-12", "customer": "Aisyah motorindo", "kode": "EPO100", "qty": 50.0, "harga": 35600.0, "hargaModal": 26350.0, "total": 1780000.0, "status": "lunas"}, {"tanggal": "2026-07-12", "customer": "Hanif motor ( sampel )", "kode": "RTV85", "qty": 1.0, "harga": 1.0, "hargaModal": 14000.0, "total": 1.0, "status": "lunas"}, {"tanggal": "2026-07-12", "customer": "Suchi motor ( sampel )", "kode": "RTV85", "qty": 1.0, "harga": 1.0, "hargaModal": 14000.0, "total": 1.0, "status": "lunas"}, {"tanggal": "2026-07-14", "customer": "Aisyah motorindo", "kode": "RTV30", "qty": 50.0, "harga": 15000.0, "hargaModal": 8000.0, "total": 750000.0, "status": "lunas"}, {"tanggal": "2026-07-14", "customer": "Aisyah motorindo", "kode": "RTV85", "qty": 12.0, "harga": 22900.0, "hargaModal": 14000.0, "total": 274800.0, "status": "lunas"}, {"tanggal": "2026-07-14", "customer": "Rion ( sales )", "kode": "RTV30", "qty": 20.0, "harga": 10000.0, "hargaModal": 8000.0, "total": 200000.0, "status": "belum"}, {"tanggal": "2026-07-15", "customer": "Dio motor ( sampel )", "kode": "RTV85", "qty": 2.0, "harga": 1.0, "hargaModal": 14000.0, "total": 2.0, "status": "lunas"}, {"tanggal": "2026-07-21", "customer": "Amanah global motor", "kode": "RTV30", "qty": 24.0, "harga": 15000.0, "hargaModal": 8000.0, "total": 360000.0, "status": "lunas"}, {"tanggal": "2026-07-21", "customer": "Suchi motor", "kode": "RTV85", "qty": 6.0, "harga": 25000.0, "hargaModal": 14000.0, "total": 150000.0, "status": "lunas"}, {"tanggal": "2026-07-21", "customer": "Suchi motor", "kode": "EPO15", "qty": 12.0, "harga": 8000.0, "hargaModal": 4350.0, "total": 96000.0, "status": "lunas"}, {"tanggal": "2026-07-22", "customer": "Deris ( sales )", "kode": "EPO50", "qty": 12.0, "harga": 16900.0, "hargaModal": 14600.0, "total": 202800.0, "status": "lunas"}, {"tanggal": "2026-07-22", "customer": "Deris ( sales )", "kode": "EPO15", "qty": 24.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 132000.0, "status": "lunas"}, {"tanggal": "2026-07-23", "customer": "Pak etek ( umum )", "kode": "EPO15", "qty": 2.0, "harga": 5000.0, "hargaModal": 4350.0, "total": 10000.0, "status": "lunas"}, {"tanggal": "2026-07-23", "customer": "Riva motor", "kode": "EPO15", "qty": 720.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 3960000.0, "status": "lunas"}, {"tanggal": "2026-07-24", "customer": "Ronal motor", "kode": "EPO15", "qty": 720.0, "harga": 5150.0, "hargaModal": 4350.0, "total": 3708000.0, "status": "lunas"}, {"tanggal": "2026-07-26", "customer": "Deris ( sales )", "kode": "EPO15", "qty": 84.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 462000.0, "status": "lunas"}, {"tanggal": "2026-07-27", "customer": "Simpang tiga motor", "kode": "EPO50", "qty": 72.0, "harga": 19000.0, "hargaModal": 14600.0, "total": 1368000.0, "status": "belum"}, {"tanggal": "2026-07-30", "customer": "CItra II loenang", "kode": "RTV85", "qty": 144.0, "harga": 19000.0, "hargaModal": 14000.0, "total": 2736000.0, "status": "lunas"}, {"tanggal": "2026-07-30", "customer": "CItra II loenang", "kode": "EPO50", "qty": 144.0, "harga": 19000.0, "hargaModal": 14600.0, "total": 2736000.0, "status": "lunas"}, {"tanggal": "2026-07-30", "customer": "CItra II loenang", "kode": "EPO15", "qty": 288.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 2160000.0, "status": "lunas"}, {"tanggal": "2026-08-02", "customer": "Deris ( sales )", "kode": "EPO15", "qty": 144.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 792000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "customer": "AJMP", "kode": "RTV30", "qty": 288.0, "harga": 8900.0, "hargaModal": 8000.0, "total": 2563200.0, "status": "lunas"}, {"tanggal": "2026-08-04", "customer": "AJMP", "kode": "RTV85", "qty": 144.0, "harga": 17000.0, "hargaModal": 14000.0, "total": 2448000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "customer": "AJMP", "kode": "EPO15", "qty": 720.0, "harga": 5290.0, "hargaModal": 4350.0, "total": 3808800.0, "status": "lunas"}, {"tanggal": "2026-08-04", "customer": "AJMP", "kode": "EPO50", "qty": 2160.0, "harga": 17000.0, "hargaModal": 14600.0, "total": 36720000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Pratama motor", "kode": "RTV30", "qty": 120.0, "harga": 13000.0, "hargaModal": 8000.0, "total": 1560000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Pratama motor", "kode": "EPO15", "qty": 72.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 540000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Ikhsan motor", "kode": "EPO15", "qty": 12.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 90000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Vivian motor", "kode": "EPO15", "qty": 12.0, "harga": 7500.0, "hargaModal": 4350.0, "total": 90000.0, "status": "lunas"}, {"tanggal": "2026-08-07", "customer": "Ronal motor", "kode": "Steel 56", "qty": 144.0, "harga": 13000.0, "hargaModal": 11000.0, "total": 1872000.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "ILHAM MOTOR", "kode": "EPO15", "qty": 144.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 1123200.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "ILHAM MOTOR", "kode": "RTV30", "qty": 24.0, "harga": 15000.0, "hargaModal": 8000.0, "total": 360000.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "Cahaya motor", "kode": "EPO15", "qty": 24.0, "harga": 7800.0, "hargaModal": 4350.0, "total": 187200.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "Cahaya motor", "kode": "RTV30", "qty": 24.0, "harga": 13000.0, "hargaModal": 8000.0, "total": 312000.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "Dio (sales)", "kode": "EPO15", "qty": 99.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 544500.0, "status": "lunas"}, {"tanggal": "2026-08-11", "customer": "Deris (sales)", "kode": "EPO15", "qty": 144.0, "harga": 5500.0, "hargaModal": 4350.0, "total": 792000.0, "status": "belum"}], "purchases": [{"tanggal": "2026-06-05", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 2160.0, "harga": 4350.0, "total": 9396000.0, "status": "lunas"}, {"tanggal": "2026-06-05", "supplier": "CV Maju lestari abadi", "kode": "EPO50", "qty": 576.0, "harga": 14600.0, "total": 8409600.0, "status": "lunas"}, {"tanggal": "2026-06-06", "supplier": "CV Maju lestari abadi", "kode": "EPO100", "qty": 144.0, "harga": 26350.0, "total": 3794400.0, "status": "lunas"}, {"tanggal": "2026-06-23", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 1440.0, "harga": 4350.0, "total": 6264000.0, "status": "lunas"}, {"tanggal": "2026-06-23", "supplier": "CV Maju lestari abadi", "kode": "EPO50", "qty": 288.0, "harga": 14600.0, "total": 4204800.0, "status": "lunas"}, {"tanggal": "2026-06-23", "supplier": "CV Maju lestari abadi", "kode": "RTV85", "qty": 144.0, "harga": 14000.0, "total": 2016000.0, "status": "lunas"}, {"tanggal": "2026-07-07", "supplier": "CV Maju lestari abadi", "kode": "RTV30", "qty": 288.0, "harga": 8000.0, "total": 2304000.0, "status": "lunas"}, {"tanggal": "2026-07-07", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 720.0, "harga": 4350.0, "total": 3132000.0, "status": "lunas"}, {"tanggal": "2026-07-07", "supplier": "CV Maju lestari abadi", "kode": "EPO100", "qty": 144.0, "harga": 26350.0, "total": 3794400.0, "status": "lunas"}, {"tanggal": "2026-07-27", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 1440.0, "harga": 4350.0, "total": 6264000.0, "status": "lunas"}, {"tanggal": "2026-07-27", "supplier": "CV Maju lestari abadi", "kode": "RTV85", "qty": 144.0, "harga": 14000.0, "total": 2016000.0, "status": "lunas"}, {"tanggal": "2026-07-27", "supplier": "CV Maju lestari abadi", "kode": "Steel 56", "qty": 144.0, "harga": 11000.0, "total": 1584000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "supplier": "CV Maju lestari abadi", "kode": "RTV85", "qty": 144.0, "harga": 14000.0, "total": 2016000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "supplier": "CV Maju lestari abadi", "kode": "RTV30", "qty": 288.0, "harga": 8000.0, "total": 2304000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "supplier": "CV Maju lestari abadi", "kode": "EPO15", "qty": 720.0, "harga": 4350.0, "total": 3132000.0, "status": "lunas"}, {"tanggal": "2026-08-04", "supplier": "CV Maju lestari abadi", "kode": "EPO50", "qty": 2160.0, "harga": 14600.0, "total": 31536000.0, "status": "lunas"}], "expenses": [{"keterangan": "Lakban + spidol", "jumlah": 22000.0}, {"keterangan": "Ekpedisi SBY - PDG", "jumlah": 400000.0}, {"keterangan": "Ekpedisi PDG - Pasbar", "jumlah": 150000.0}, {"keterangan": "Lakban + print", "jumlah": 18000.0}, {"keterangan": "Titip barang", "jumlah": 100000.0}, {"keterangan": "BBM", "jumlah": 15000.0}, {"keterangan": "Ekpedisi SBY - PDG", "jumlah": 323000.0}, {"keterangan": "Ekpedisi pdg- alahan panjang", "jumlah": 102500.0}, {"keterangan": "Ekpedisi pdg jambi pessel dmr", "jumlah": 30500.0}, {"keterangan": "admin transfer", "jumlah": 2500.0}, {"keterangan": "admin transfer", "jumlah": 3000.0}, {"keterangan": "Ekpedisi SBY - PDG", "jumlah": 220000.0}, {"keterangan": "Ekpedisi PDG - SSL", "jumlah": 10000.0}, {"keterangan": "Ekpedisi PDG - Pasbar", "jumlah": 20000.0}, {"keterangan": "Ekpedisi PDG - Pasbar", "jumlah": 20000.0}, {"keterangan": "Pinjam agik", "jumlah": 56000.0}, {"keterangan": "Ekpedisi pdg - ssl", "jumlah": 30000.0}, {"keterangan": "Insentif ferdi", "jumlah": 300000.0}, {"keterangan": "biaya pengiriman pessel (in)", "jumlah": 50000.0}, {"keterangan": "ekpedisi - sby - padang", "jumlah": 906000.0}, {"keterangan": "Biaya rental mobil", "jumlah": 350000.0}, {"keterangan": "biaya BBM", "jumlah": 400000.0}, {"keterangan": "biaya supir", "jumlah": 200000.0}, {"keterangan": "biaya makan + roko supir", "jumlah": 215000.0}, {"keterangan": "biaya admin", "jumlah": 6500.0}]};
 
+// Data toko yang sudah pernah order/tercatat di faktur — dimasukkan sekali ke Daftar Toko
+// saat menu tersebut masih kosong. Nama toko yang tidak diketahui dibiarkan kosong (bisa diedit nanti).
+const STORE_SEED = [
+  {id:"SSL-YMA1-DIO", nama:"Dio Motor", hp:"", alamat:"Solok Selatan", keterangan:""},
+  {id:"PSB-YMA1-PEM", nama:"Perisai Motor", hp:"", alamat:"Pasaman Barat", keterangan:""},
+  {id:"DMR-YMA1-KSM", nama:"Kasda Motor", hp:"", alamat:"Dharmasraya", keterangan:""},
+  {id:"DMR-YMA1-PTB", nama:"", hp:"", alamat:"Dharmasraya", keterangan:""},
+  {id:"PSB-YMA1-DNM", nama:"", hp:"", alamat:"Pasaman Barat", keterangan:""},
+  {id:"DMR-YMA1-CTM", nama:"", hp:"", alamat:"Dharmasraya", keterangan:""},
+  {id:"PSB-YMA1-ASM", nama:"", hp:"", alamat:"Pasaman Barat", keterangan:""},
+  {id:"PSR-YMA1-FHM", nama:"", hp:"", alamat:"Pesisir Selatan", keterangan:""},
+  {id:"SSL-YMA1-CRG", nama:"", hp:"", alamat:"Alahan Panjang", keterangan:""},
+  {id:"BKO-YMA-BFM", nama:"", hp:"", alamat:"Bangko, Jambi", keterangan:""},
+  {id:"PSR-YMA1-RFM", nama:"", hp:"", alamat:"Pesisir Selatan", keterangan:""},
+  {id:"UMM-YMA1-UMM", nama:"", hp:"", alamat:"", keterangan:"Kategori SALES / SAMPEL / UMUM — dipakai bersama untuk toko kategori ini"},
+  {id:"PDG-YMA1-AGM", nama:"Amanah Global Motor", hp:"", alamat:"Padang", keterangan:""},
+  {id:"PDG-YMA1-SCM", nama:"", hp:"", alamat:"Padang", keterangan:""},
+  {id:"SSL-YMA1-RVA", nama:"", hp:"", alamat:"Solok Selatan", keterangan:""},
+  {id:"DMR-YMA1-RNL", nama:"", hp:"", alamat:"Dharmasraya", keterangan:""},
+  {id:"SLK-YMA1-STM", nama:"", hp:"", alamat:"Kota Solok", keterangan:""},
+  {id:"PSR-YMA1-CT2", nama:"", hp:"", alamat:"Pesisir Selatan", keterangan:""},
+  {id:"PST-YMA1-AJM", nama:"", hp:"", alamat:"Pasaman Timur", keterangan:""},
+  {id:"PSR-YMA1-PTM", nama:"", hp:"", alamat:"Pesisir Selatan", keterangan:""},
+  {id:"PSR-YMA1-IKM", nama:"", hp:"", alamat:"Pesisir Selatan", keterangan:""},
+  {id:"PSR-YMA1-VVM", nama:"", hp:"", alamat:"Pesisir Selatan", keterangan:""},
+  {id:"PST-YMA1-IHM", nama:"", hp:"", alamat:"Pasaman Timur", keterangan:""},
+  {id:"PST-YMA1-CYM", nama:"", hp:"", alamat:"Pasaman Timur", keterangan:""}
+];
+
 /* ============ STATE ============ */
 let products = [];
 let invoices = [];
 let purchases = [];
 let expenses = [];
+let stores = [];
 let invoiceCounter = 0;
 let purchaseCounter = 0;
 let companyProfile = {alamat:'', hp:'', ig:'', rek:''};
@@ -846,6 +1057,7 @@ async function reloadStateFromCache(){
   invoices = firestoreCache.invoices || [];
   purchases = firestoreCache.purchases || [];
   expenses = firestoreCache.expenses || [];
+  stores = firestoreCache.stores || [];
   invoiceCounter = firestoreCache.invoiceCounter || 0;
   purchaseCounter = firestoreCache.purchaseCounter || 0;
   companyProfile = firestoreCache.companyProfile || {alamat:'', hp:'', ig:'', rek:''};
@@ -958,6 +1170,8 @@ document.getElementById('nav').addEventListener('click', async e=>{
   document.getElementById('view-'+view).classList.add('active');
   if(view === 'dashboard') renderDashboard();
   if(view === 'faktur') populateBarangSelect();
+  if(view === 'toko') renderStoreTable();
+  if(view === 'tren') renderTrenPembayaran();
   if(view === 'margin') renderMarginTable();
   if(view === 'pembelian') populatePembelianDatalist();
 });
@@ -969,6 +1183,7 @@ async function init(){
   invoices = await loadKey('invoices', []);
   purchases = await loadKey('purchases', []);
   expenses = await loadKey('expenses', []);
+  stores = await loadKey('stores', []);
   invoiceCounter = await loadKey('invoiceCounter', 0);
   purchaseCounter = await loadKey('purchaseCounter', 0);
   companyProfile = await loadKey('companyProfile', {alamat:'', hp:'', ig:'', rek:''});
@@ -997,6 +1212,12 @@ async function init(){
     showToast('Data awal dari file Anda berhasil dimuat.');
   }
 
+  // Impor Daftar Toko awal (toko yang sudah pernah order) hanya sekali, saat menu Daftar Toko masih kosong.
+  if(stores.length===0){
+    stores = STORE_SEED.map(s=>({id:s.id, nama:s.nama, hp:s.hp, alamat:s.alamat, keterangan:s.keterangan, createdAt:Date.now()}));
+    await saveKey('stores', stores);
+  }
+
   document.getElementById('f-tanggal').value = todayISO();
   document.getElementById('p-tanggal').value = todayISO();
   document.getElementById('pb-tanggal').value = todayISO();
@@ -1020,7 +1241,9 @@ function renderAll(){
   renderTagihanTable();
   renderPembelianTable();
   renderPengeluaranTable();
+  renderStoreTable();
   if(document.getElementById('view-margin')?.classList.contains('active')) renderMarginTable();
+  if(document.getElementById('view-tren')?.classList.contains('active')) renderTrenPembayaran();
 }
 
 function seedFromSpreadsheet(){
@@ -1112,6 +1335,21 @@ function renderDashboard(){
 
   document.getElementById('d-saldo-kas').textContent = rupiah(saldoKas);
 
+  const dTotalToko = document.getElementById('d-total-toko');
+  if(dTotalToko){
+    const trows = computeTrendRows();
+    const lunasRows = trows.filter(r=>r.statusBayar!=='belum');
+    const lamaList = lunasRows.map(r=>r.lamaPelunasan).filter(v=>v!=null);
+    const rata = lamaList.length ? (lamaList.reduce((s,v)=>s+v,0)/lamaList.length) : null;
+    dTotalToko.textContent = stores.length;
+    document.getElementById('d-faktur-lunas').textContent = invoices.filter(i=>i.status==='lunas').length;
+    document.getElementById('d-faktur-belum').textContent = invoices.filter(i=>i.status==='belum').length;
+    document.getElementById('d-rata-pelunasan').textContent = rata!=null ? rata.toFixed(1)+' Hari' : '-';
+    document.getElementById('d-lebih-cepat').textContent = trows.filter(r=>r.statusBayar==='cepat').length;
+    document.getElementById('d-tepat-waktu').textContent = trows.filter(r=>r.statusBayar==='tepat').length;
+    document.getElementById('d-terlambat').textContent = trows.filter(r=>r.statusBayar==='telat').length;
+  }
+
   const recent = [...invoices].sort((a,b)=> ((b.tanggal||'').localeCompare(a.tanggal||'')) || (b.createdAt-a.createdAt)).slice(0,5);
   const tbody = document.getElementById('d-recent');
   tbody.innerHTML = recent.length ? recent.map(inv=>`
@@ -1123,6 +1361,37 @@ function renderDashboard(){
       <td class="center"><span class="badge ${inv.status==='lunas'?'badge-lunas':'badge-belum'}">${inv.status==='lunas'?'Lunas':'Belum Lunas'}</span></td>
     </tr>`).join('') : `<tr class="empty-row"><td colspan="5">Belum ada faktur.</td></tr>`;
 }
+
+document.getElementById('btn-export-dashboard').addEventListener('click', ()=>{
+  const totalPenjualan = invoices.reduce((s,i)=>s+i.total,0);
+  const omset = invoices.filter(i=>i.status==='lunas').reduce((s,i)=>s+i.total,0);
+  const piutang = invoices.filter(i=>i.status==='belum').reduce((s,i)=>s+i.total,0);
+  const hutang = purchases.filter(p=>p.status==='belum').reduce((s,p)=>s+p.total,0);
+  const totalPengeluaran = expenses.reduce((s,e)=>s+e.jumlah,0);
+  const modalBarang = products.reduce((s,p)=>s+(p.stok*p.hargaModal),0);
+  const trows = computeTrendRows();
+  const lunasRows = trows.filter(r=>r.statusBayar!=='belum');
+  const lamaList = lunasRows.map(r=>r.lamaPelunasan).filter(v=>v!=null);
+  const rata = lamaList.length ? (lamaList.reduce((s,v)=>s+v,0)/lamaList.length) : null;
+  const rows = [
+    ['Total Penjualan (Semua Faktur)', totalPenjualan],
+    ['Omset — Kas Masuk (Lunas)', omset],
+    ['Piutang — Belum Lunas', piutang],
+    ['Hutang ke Supplier', hutang],
+    ['Total Pengeluaran', totalPengeluaran],
+    ['Total Modal Barang (Stok)', modalBarang],
+    ['Total Toko Terdaftar', stores.length],
+    ['Total Faktur', invoices.length],
+    ['Total Nilai Faktur', totalPenjualan],
+    ['Faktur Lunas', invoices.filter(i=>i.status==='lunas').length],
+    ['Faktur Belum Lunas', invoices.filter(i=>i.status==='belum').length],
+    ['Rata-rata Hari Pelunasan', rata!=null ? rata.toFixed(1) : '-'],
+    ['Lunas Lebih Cepat', trows.filter(r=>r.statusBayar==='cepat').length],
+    ['Lunas Tepat Waktu', trows.filter(r=>r.statusBayar==='tepat').length],
+    ['Terlambat', trows.filter(r=>r.statusBayar==='telat').length]
+  ];
+  exportRowsToCSV('Dashboard', ['Statistik','Nilai'], rows);
+});
 
 document.getElementById('btn-save-profile').addEventListener('click', async ()=>{
   companyProfile = {
@@ -1162,7 +1431,7 @@ document.getElementById('btn-backup-download').addEventListener('click', ()=>{
     app: 'YASMON AUTOMOTIVE INDONESIA - Sistem Penjualan',
     exportedAt: new Date().toISOString(),
     data: {
-      products, invoices, purchases, expenses,
+      products, invoices, purchases, expenses, stores,
       invoiceCounter, purchaseCounter, companyProfile, kasProfile
     }
   };
@@ -1205,6 +1474,7 @@ document.getElementById('btn-backup-restore').addEventListener('click', async ()
   invoices = d.invoices || [];
   purchases = d.purchases || [];
   expenses = d.expenses || [];
+  if(Array.isArray(d.stores)) stores = d.stores; // kalau file backup tidak menyertakan Daftar Toko, data toko yang sekarang tetap dipakai
   invoiceCounter = d.invoiceCounter || 0;
   purchaseCounter = d.purchaseCounter || 0;
   if(d.companyProfile) companyProfile = d.companyProfile; // kalau file backup tidak menyertakan profil toko, profil yang sekarang tetap dipakai
@@ -1214,6 +1484,7 @@ document.getElementById('btn-backup-restore').addEventListener('click', async ()
   await saveKey('invoices', invoices);
   await saveKey('purchases', purchases);
   await saveKey('expenses', expenses);
+  await saveKey('stores', stores);
   await saveKey('invoiceCounter', invoiceCounter);
   await saveKey('purchaseCounter', purchaseCounter);
   await saveKey('companyProfile', companyProfile);
@@ -1291,32 +1562,49 @@ function renderStokTable(){
       <td>${escapeHtml(p.nama)}</td>
       <td class="right num hm-cell" data-hm-kode="${escapeHtml(p.kode)}" title="Klik 2x untuk melihat semua harga modal" style="cursor:pointer;letter-spacing:2px;">••••••</td>
       <td class="center">${p.stok<=0 ? '<span class="badge badge-low">Habis</span>' : p.stok}</td>
+      <td class="right num tm-cell" data-tm-kode="${escapeHtml(p.kode)}" title="Klik 2x pada Harga Modal untuk melihat" style="cursor:pointer;letter-spacing:2px;">••••••</td>
       <td class="right">
         <button class="btn btn-ghost btn-sm" data-edit="${escapeHtml(p.kode)}">Edit</button>
         <button class="btn btn-danger btn-sm" data-del="${escapeHtml(p.kode)}">Hapus</button>
       </td>
-    </tr>`).join('') : `<tr class="empty-row"><td colspan="5">Belum ada barang. Tambahkan barang pertama Anda di atas.</td></tr>`;
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Belum ada barang. Tambahkan barang pertama Anda di atas.</td></tr>`;
+  // total modal keseluruhan (mengikuti rumus yang sama dengan kartu Dashboard) tetap disamarkan sampai di-reveal
+  document.querySelectorAll('#stok-table .tm-cell, .tm-total-cell').forEach(c=>{ c.textContent = '••••••'; c.dataset.revealed = '0'; });
 }
 document.getElementById('stok-search').addEventListener('input', renderStokTable);
 
 document.getElementById('stok-table').addEventListener('dblclick', async e=>{
-  const cell = e.target.closest('.hm-cell');
+  const cell = e.target.closest('.hm-cell') || e.target.closest('.tm-cell');
   if(!cell) return;
-  const allCells = document.querySelectorAll('#stok-table .hm-cell');
-  const alreadyShown = cell.dataset.revealed === '1';
+  const allHmCells = document.querySelectorAll('#stok-table .hm-cell');
+  const allTmCells = document.querySelectorAll('#stok-table .tm-cell');
+  const totalCell = document.querySelector('.tm-total-cell');
+  const alreadyShown = allHmCells[0]?.dataset.revealed === '1';
 
   if(alreadyShown){
-    allCells.forEach(c=>{ c.textContent = '••••••'; c.dataset.revealed = '0'; });
+    allHmCells.forEach(c=>{ c.textContent = '••••••'; c.dataset.revealed = '0'; });
+    allTmCells.forEach(c=>{ c.textContent = '••••••'; });
+    if(totalCell) totalCell.textContent = '••••••';
     return;
   }
 
-  const ok = await askPassword('Masukkan password untuk melihat semua harga modal barang.');
+  const ok = await askPassword('Masukkan password untuk melihat semua harga modal & total modal barang.');
   if(!ok) return;
 
-  allCells.forEach(c=>{
+  let totalModal = 0;
+  allHmCells.forEach(c=>{
     const p = products.find(x=>x.kode===c.dataset.hmKode);
     if(p){ c.textContent = rupiah(p.hargaModal); c.dataset.revealed = '1'; }
   });
+  allTmCells.forEach(c=>{
+    const p = products.find(x=>x.kode===c.dataset.tmKode);
+    if(p){
+      const subtotal = p.stok * p.hargaModal;
+      totalModal += subtotal;
+      c.textContent = rupiah(subtotal);
+    }
+  });
+  if(totalCell) totalCell.textContent = rupiah(totalModal);
 });
 
 document.getElementById('stok-table').addEventListener('click', async e=>{
@@ -1347,6 +1635,230 @@ document.getElementById('stok-table').addEventListener('click', async e=>{
     renderDashboard();
     showToast('Barang dihapus.');
   }
+});
+
+/* ============ EXPORT EXCEL (CSV, kompatibel dibuka di Excel) ============ */
+function exportRowsToCSV(filenameBase, header, rows){
+  if(rows.length===0){ showToast('Tidak ada data untuk diexport.', true); return; }
+  const csvEscape = v => {
+    const s = String(v==null?'':v);
+    return /[",;\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  };
+  const csv = '\uFEFF' + [header, ...rows].map(r=>r.map(csvEscape).join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filenameBase + '_' + todayISO() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Data berhasil diexport ke Excel.');
+}
+
+/* ============ DAFTAR TOKO ============ */
+function normalizeTokoId(v){ return String(v||'').trim().toUpperCase(); }
+let editingTokoId = null;
+
+function findStoreById(id){
+  const n = normalizeTokoId(id);
+  return stores.find(s=>normalizeTokoId(s.id)===n);
+}
+function findStoreByNameOrId(q){
+  const query = String(q||'').trim().toLowerCase();
+  if(!query) return null;
+  return stores.find(s=> normalizeTokoId(s.id)===normalizeTokoId(q) || (s.nama||'').trim().toLowerCase()===query);
+}
+
+function renderStoreTable(){
+  const tbody = document.getElementById('toko-table');
+  if(!tbody) return;
+  const q = (document.getElementById('toko-search')?.value||'').toLowerCase();
+  let list = [...stores];
+  if(q){
+    list = list.filter(s=>
+      (s.id||'').toLowerCase().includes(q) ||
+      (s.nama||'').toLowerCase().includes(q) ||
+      (s.hp||'').toLowerCase().includes(q) ||
+      (s.alamat||'').toLowerCase().includes(q)
+    );
+  }
+  list.sort((a,b)=> (a.nama||a.id||'').localeCompare(b.nama||b.id||''));
+
+  tbody.innerHTML = list.length ? list.map(s=>`
+    <tr>
+      <td class="kode">${escapeHtml(s.id)}</td>
+      <td>${escapeHtml(s.nama||'-')}</td>
+      <td>${escapeHtml(s.hp||'-')}</td>
+      <td>${escapeHtml(s.alamat||'-')}</td>
+      <td>${escapeHtml(s.keterangan||'-')}</td>
+      <td class="right">
+        <button class="btn btn-ghost btn-sm" data-edit-toko="${escapeHtml(s.id)}">Edit</button>
+        <button class="btn btn-danger btn-sm" data-del-toko="${escapeHtml(s.id)}">Hapus</button>
+      </td>
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Belum ada toko terdaftar / tidak ditemukan.</td></tr>`;
+}
+document.getElementById('toko-search')?.addEventListener('input', renderStoreTable);
+
+function showTokoError(msg){
+  const el = document.getElementById('tk-error');
+  if(!msg){ el.style.display='none'; el.textContent=''; return; }
+  el.style.display='block'; el.textContent = msg;
+}
+
+document.getElementById('btn-save-toko')?.addEventListener('click', async ()=>{
+  const id = document.getElementById('tk-id').value.trim();
+  const nama = document.getElementById('tk-nama').value.trim();
+  const hp = document.getElementById('tk-hp').value.trim(); // disimpan sebagai teks, angka 0 di depan tidak hilang
+  const alamat = document.getElementById('tk-alamat').value.trim();
+  const keterangan = document.getElementById('tk-keterangan').value.trim();
+
+  showTokoError('');
+  if(!id){ showTokoError('ID Toko tidak boleh kosong.'); return; }
+  if(!nama){ showTokoError('Nama Toko tidak boleh kosong.'); return; }
+
+  const existing = findStoreById(id);
+  if(editingTokoId){
+    // mode edit: ID boleh sama dengan dirinya sendiri, tapi tidak boleh sama dengan toko lain
+    if(existing && normalizeTokoId(existing.id)!==normalizeTokoId(editingTokoId)){
+      showTokoError('ID Toko sudah terdaftar. Silakan gunakan ID Toko yang berbeda.');
+      return;
+    }
+    const s = findStoreById(editingTokoId);
+    if(!s){ showTokoError('Toko yang diedit tidak ditemukan lagi.'); return; }
+    s.id = id; s.nama = nama; s.hp = hp; s.alamat = alamat; s.keterangan = keterangan;
+    await saveKey('stores', stores);
+    showToast('Toko '+id+' berhasil diperbarui.');
+  } else {
+    if(existing){
+      showTokoError('ID Toko sudah terdaftar. Silakan gunakan ID Toko yang berbeda.');
+      return;
+    }
+    stores.push({id, nama, hp, alamat, keterangan, createdAt: Date.now()});
+    await saveKey('stores', stores);
+    showToast('Toko '+id+' berhasil didaftarkan.');
+  }
+
+  editingTokoId = null;
+  document.getElementById('toko-form-title').textContent = 'Daftarkan Toko';
+  document.getElementById('btn-save-toko').textContent = '+ Daftarkan Toko';
+  document.getElementById('btn-cancel-edit-toko').style.display = 'none';
+  document.getElementById('tk-id').value = '';
+  document.getElementById('tk-nama').value = '';
+  document.getElementById('tk-hp').value = '';
+  document.getElementById('tk-alamat').value = '';
+  document.getElementById('tk-keterangan').value = '';
+  renderStoreTable();
+  renderDashboard();
+});
+
+document.getElementById('btn-cancel-edit-toko')?.addEventListener('click', ()=>{
+  editingTokoId = null;
+  document.getElementById('toko-form-title').textContent = 'Daftarkan Toko';
+  document.getElementById('btn-save-toko').textContent = '+ Daftarkan Toko';
+  document.getElementById('btn-cancel-edit-toko').style.display = 'none';
+  document.getElementById('tk-id').value = '';
+  document.getElementById('tk-nama').value = '';
+  document.getElementById('tk-hp').value = '';
+  document.getElementById('tk-alamat').value = '';
+  document.getElementById('tk-keterangan').value = '';
+  showTokoError('');
+});
+
+document.getElementById('toko-table')?.addEventListener('click', async e=>{
+  const editBtn = e.target.closest('[data-edit-toko]');
+  const delBtn = e.target.closest('[data-del-toko]');
+  if(editBtn){
+    const s = findStoreById(editBtn.dataset.editToko);
+    if(!s) return;
+    editingTokoId = s.id;
+    document.getElementById('toko-form-title').textContent = 'Edit Toko';
+    document.getElementById('btn-save-toko').textContent = 'Simpan Perubahan';
+    document.getElementById('btn-cancel-edit-toko').style.display = 'inline-block';
+    document.getElementById('tk-id').value = s.id;
+    document.getElementById('tk-nama').value = s.nama||'';
+    document.getElementById('tk-hp').value = s.hp||'';
+    document.getElementById('tk-alamat').value = s.alamat||'';
+    document.getElementById('tk-keterangan').value = s.keterangan||'';
+    showTokoError('');
+    document.getElementById('view-toko').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  if(delBtn){
+    const s = findStoreById(delBtn.dataset.delToko);
+    if(!s) return;
+    const ok = await askPassword('Masukkan password untuk menghapus toko '+s.id+'.');
+    if(!ok) return;
+    stores = stores.filter(x=>normalizeTokoId(x.id)!==normalizeTokoId(s.id));
+    await saveKey('stores', stores);
+    renderStoreTable();
+    renderDashboard();
+    showToast('Toko '+s.id+' dihapus dari Daftar Toko.');
+  }
+});
+
+document.getElementById('btn-export-toko')?.addEventListener('click', ()=>{
+  const q = (document.getElementById('toko-search')?.value||'').toLowerCase();
+  let list = [...stores];
+  if(q){
+    list = list.filter(s=>
+      (s.id||'').toLowerCase().includes(q) || (s.nama||'').toLowerCase().includes(q) ||
+      (s.hp||'').toLowerCase().includes(q) || (s.alamat||'').toLowerCase().includes(q)
+    );
+  }
+  list.sort((a,b)=> (a.nama||a.id||'').localeCompare(b.nama||b.id||''));
+  const rows = list.map(s=>[s.id, s.nama||'-', s.hp||'-', s.alamat||'-', s.keterangan||'-']);
+  exportRowsToCSV('Daftar_Toko', ['ID Toko','Nama Toko','No. HP','Alamat','Keterangan'], rows);
+});
+
+/* ============ PILIH TOKO (di halaman Buat Faktur, tidak masuk ke print faktur) ============ */
+let selectedTokoForInvoice = null; // {id, nama}
+
+function renderPilihTokoResults(query){
+  const box = document.getElementById('f-pilih-toko-results');
+  const q = String(query||'').trim().toLowerCase();
+  if(!q){ box.style.display='none'; box.innerHTML=''; return; }
+  const matches = stores.filter(s=>
+    (s.id||'').toLowerCase().includes(q) || (s.nama||'').toLowerCase().includes(q)
+  ).slice(0,8);
+  if(matches.length===0){
+    box.innerHTML = `<div style="padding:10px 12px;color:var(--ink-soft);font-size:13px;">Toko tidak ditemukan. Daftarkan dulu di menu Daftar Toko.</div>`;
+    box.style.display='block';
+    return;
+  }
+  box.innerHTML = matches.map(s=>`
+    <div class="pilih-toko-item" data-pick-toko="${escapeHtml(s.id)}" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--line);font-size:14px;">
+      <strong>${escapeHtml(s.nama||'(tanpa nama)')}</strong> <span class="mono" style="color:var(--ink-soft);">— ${escapeHtml(s.id)}</span>
+    </div>`).join('');
+  box.style.display='block';
+}
+document.getElementById('f-pilih-toko')?.addEventListener('input', e=>renderPilihTokoResults(e.target.value));
+document.getElementById('f-pilih-toko')?.addEventListener('focus', e=>renderPilihTokoResults(e.target.value));
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#f-pilih-toko') && !e.target.closest('#f-pilih-toko-results')){
+    const box = document.getElementById('f-pilih-toko-results');
+    if(box) box.style.display='none';
+  }
+});
+document.getElementById('f-pilih-toko-results')?.addEventListener('click', e=>{
+  const item = e.target.closest('[data-pick-toko]');
+  if(!item) return;
+  const s = findStoreById(item.dataset.pickToko);
+  if(!s) return;
+  selectedTokoForInvoice = {id:s.id, nama:s.nama};
+  document.getElementById('f-pilih-toko').value = '';
+  document.getElementById('f-pilih-toko-results').style.display='none';
+  document.getElementById('f-toko-selected-wrap').style.display='block';
+  document.getElementById('f-toko-selected-label').textContent = (s.nama||'(tanpa nama)') + ' — ' + s.id;
+  // Otomatis isi Nama Pelanggan/Toko, alamat & no. telp dari data toko (boleh diedit manual lagi)
+  document.getElementById('f-customer').value = s.nama || s.id;
+  if(s.alamat) document.getElementById('f-alamat').value = s.alamat;
+  if(s.hp) document.getElementById('f-telp').value = s.hp;
+});
+document.getElementById('btn-clear-toko-selected')?.addEventListener('click', ()=>{
+  selectedTokoForInvoice = null;
+  document.getElementById('f-toko-selected-wrap').style.display='none';
+  document.getElementById('f-toko-selected-label').textContent = '';
 });
 
 /* ============ BUAT FAKTUR ============ */
@@ -1429,6 +1941,8 @@ async function simpanFakturBaru(){
     customer: document.getElementById('f-customer').value.trim(),
     customerAddress: document.getElementById('f-alamat').value.trim(),
     customerPhone: document.getElementById('f-telp').value.trim(),
+    tokoId: selectedTokoForInvoice ? selectedTokoForInvoice.id : null,
+    tokoNama: selectedTokoForInvoice ? selectedTokoForInvoice.nama : null,
     top,
     items: cart.map(c=>({...c, subtotal:c.harga*c.qty})),
     total,
@@ -1454,11 +1968,15 @@ async function simpanFakturBaru(){
   document.getElementById('f-telp').value = '';
   document.getElementById('f-top').value = 0;
   document.getElementById('f-tanggal').value = todayISO();
+  selectedTokoForInvoice = null;
+  document.getElementById('f-toko-selected-wrap').style.display='none';
+  document.getElementById('f-toko-selected-label').textContent = '';
   renderStokTable();
   populateBarangSelect();
   populatePembelianDatalist();
   renderTagihanTable();
   renderDashboard();
+  if(document.getElementById('view-tren')?.classList.contains('active')) renderTrenPembayaran();
 
   return invoice;
 }
@@ -1482,6 +2000,8 @@ function buildPreviewInvoiceFromCart(){
     customer: document.getElementById('f-customer').value.trim(),
     customerAddress: document.getElementById('f-alamat').value.trim(),
     customerPhone: document.getElementById('f-telp').value.trim(),
+    tokoId: selectedTokoForInvoice ? selectedTokoForInvoice.id : null,
+    tokoNama: selectedTokoForInvoice ? selectedTokoForInvoice.nama : null,
     top,
     items: cart.map(c=>({...c, subtotal:c.harga*c.qty})),
     total,
@@ -1561,7 +2081,7 @@ function renderTagihanTable(){
     return;
   }
 
-  thead.innerHTML = `<th>No. Faktur</th><th>Tanggal</th><th>Pelanggan</th><th class="right">Total</th><th class="center">Status</th><th class="right">Aksi</th>`;
+  thead.innerHTML = `<th>No. Faktur</th><th>Tanggal</th><th>ID Pelanggan</th><th>Pelanggan</th><th class="right">Total</th><th class="center">Status</th><th class="right">Aksi</th>`;
   list.sort((a,b)=>{
     const cmp = (a.tanggal||'').localeCompare(b.tanggal||'') || (a.createdAt-b.createdAt);
     return sortMode==='lama' ? cmp : -cmp;
@@ -1571,6 +2091,7 @@ function renderTagihanTable(){
     <tr class="tagihan-row" data-row-id="${inv.id}" title="Klik dua kali untuk lihat rincian SKU">
       <td class="mono-cell">${escapeHtml(inv.nomor)}</td>
       <td>${fmtDate(inv.tanggal)}</td>
+      <td class="mono-cell">${escapeHtml(inv.tokoId||'-')}</td>
       <td>${escapeHtml(inv.customer||'-')}</td>
       <td class="right num">${rupiah(inv.total)}</td>
       <td class="center"><span class="badge ${inv.status==='lunas'?'badge-lunas':'badge-belum'}">${inv.status==='lunas'?'Lunas':'Belum Lunas'}</span></td>
@@ -1579,7 +2100,7 @@ function renderTagihanTable(){
         ${inv.status==='belum' ? `<button class="btn btn-success btn-sm" data-lunas="${inv.id}">Lunas</button>` : `<button class="btn btn-ghost btn-sm" data-batal="${inv.id}">Batal Lunas</button>`}
         <button class="btn btn-danger btn-sm" data-delinv="${inv.id}">Hapus</button>
       </td>
-    </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Tidak ada faktur.</td></tr>`;
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="7">Tidak ada faktur.</td></tr>`;
 }
 
 function toggleTagihanDetailRow(row){
@@ -1595,7 +2116,7 @@ function toggleTagihanDetailRow(row){
   if(!inv) return;
   const detailTr = document.createElement('tr');
   detailTr.className = 'tagihan-detail-row';
-  detailTr.innerHTML = `<td colspan="6" style="background:#f6f7f9;padding:10px 14px;">
+  detailTr.innerHTML = `<td colspan="7" style="background:#f6f7f9;padding:10px 14px;">
     <div style="font-weight:700;margin-bottom:6px;">Rincian Faktur ${escapeHtml(inv.nomor)} — ${escapeHtml(inv.customer||'-')}</div>
     <table style="width:100%;font-size:13px;">
       <thead><tr><th style="text-align:left;">Kode</th><th style="text-align:left;">Nama Barang</th><th class="center">Qty</th><th class="right">Harga Satuan</th><th class="right">Subtotal</th></tr></thead>
@@ -1812,6 +2333,221 @@ document.getElementById('close-invoice').addEventListener('click', ()=>document.
 document.getElementById('close-invoice-2').addEventListener('click', ()=>document.getElementById('invoice-overlay').classList.remove('open'));
 document.getElementById('btn-print-invoice').addEventListener('click', ()=>window.print());
 
+/* ============ TREN PEMBAYARAN ============ */
+// Lama pelunasan SELALU dihitung dari Tanggal Faktur -> Tanggal Pelunasan (inv.lunasAt), bukan dari jatuh tempo.
+function hariAntara(isoAwal, tsAkhir){
+  const awal = new Date(isoAwal+'T00:00:00');
+  const akhir = new Date(tsAkhir);
+  const akhirTgl = new Date(akhir.getFullYear(), akhir.getMonth(), akhir.getDate());
+  const diffMs = akhirTgl - awal;
+  return Math.round(diffMs / 86400000);
+}
+function tambahHariISO(iso, hari){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+Number(hari||0));
+  return d.toISOString().slice(0,10);
+}
+function computeTrendRows(){
+  return invoices.map(inv=>{
+    const top = Number(inv.top||0);
+    const jatuhTempo = tambahHariISO(inv.tanggal, top);
+    let lamaPelunasan = null, statusBayar = 'belum';
+    if(inv.status==='lunas' && inv.lunasAt){
+      lamaPelunasan = hariAntara(inv.tanggal, inv.lunasAt);
+      const tglPelunasanISO = new Date(inv.lunasAt).toISOString().slice(0,10);
+      if(tglPelunasanISO < jatuhTempo) statusBayar = 'cepat';
+      else if(tglPelunasanISO === jatuhTempo) statusBayar = 'tepat';
+      else statusBayar = 'telat';
+    }
+    const tokoId = inv.tokoId || '';
+    const tokoNama = inv.tokoNama || inv.customer || 'Pelanggan Umum';
+    return {inv, tokoId, tokoNama, tanggalFaktur:inv.tanggal, termin:top, jatuhTempo, lunasAt:inv.lunasAt, lamaPelunasan, statusBayar};
+  });
+}
+const STATUS_BAYAR_LABEL = {belum:'Belum Lunas', cepat:'Lunas Lebih Cepat', tepat:'Lunas Tepat Waktu', telat:'Terlambat'};
+const STATUS_BAYAR_BADGE = {belum:'badge-belum', cepat:'badge-lunas', tepat:'badge-lunas', telat:'badge-belum'};
+
+let trenRiwayatToko = null; // nama toko yang sedang dilihat riwayatnya (null = tidak sedang lihat riwayat toko)
+
+function populateTrenFilters(rows){
+  const bulanSel = document.getElementById('tren-bulan-filter');
+  const tahunSel = document.getElementById('tren-tahun-filter');
+  const bulanCur = bulanSel.value, tahunCur = tahunSel.value;
+  const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const tahunSet = new Set();
+  rows.forEach(r=>{ if(r.tanggalFaktur) tahunSet.add(r.tanggalFaktur.slice(0,4)); });
+  const tahunList = [...tahunSet].sort((a,b)=>b.localeCompare(a));
+  bulanSel.innerHTML = '<option value="">Semua</option>' + bulanNama.map((n,i)=>`<option value="${String(i+1).padStart(2,'0')}">${n}</option>`).join('');
+  tahunSel.innerHTML = '<option value="">Semua</option>' + tahunList.map(t=>`<option value="${t}">${t}</option>`).join('');
+  bulanSel.value = bulanCur; tahunSel.value = tahunCur;
+}
+
+function filteredTrenRows(){
+  const q = (document.getElementById('tren-search').value||'').toLowerCase();
+  const bulan = document.getElementById('tren-bulan-filter').value;
+  const tahun = document.getElementById('tren-tahun-filter').value;
+  const status = document.getElementById('tren-status-filter').value;
+  const sortMode = document.getElementById('tren-sort').value;
+
+  let rows = computeTrendRows();
+  if(trenRiwayatToko) rows = rows.filter(r=>r.tokoNama===trenRiwayatToko);
+  if(q) rows = rows.filter(r=>
+    r.tokoNama.toLowerCase().includes(q) || (r.tokoId||'').toLowerCase().includes(q) || r.inv.nomor.toLowerCase().includes(q)
+  );
+  if(bulan) rows = rows.filter(r=>(r.tanggalFaktur||'').slice(5,7)===bulan);
+  if(tahun) rows = rows.filter(r=>(r.tanggalFaktur||'').slice(0,4)===tahun);
+  if(status) rows = rows.filter(r=>r.statusBayar===status);
+
+  rows.sort((a,b)=>{
+    if(sortMode==='baru') return (b.tanggalFaktur||'').localeCompare(a.tanggalFaktur||'') || (b.inv.createdAt-a.inv.createdAt);
+    if(sortMode==='lama') return (a.tanggalFaktur||'').localeCompare(b.tanggalFaktur||'') || (a.inv.createdAt-b.inv.createdAt);
+    if(sortMode==='pelunasan-cepat') return (a.lamaPelunasan ?? Infinity) - (b.lamaPelunasan ?? Infinity);
+    if(sortMode==='pelunasan-lama') return (b.lamaPelunasan ?? -Infinity) - (a.lamaPelunasan ?? -Infinity);
+    if(sortMode==='nilai-besar') return b.inv.total - a.inv.total;
+    if(sortMode==='nilai-kecil') return a.inv.total - b.inv.total;
+    return 0;
+  });
+  return rows;
+}
+
+function renderTrenSummary(rows){
+  const totalFaktur = rows.length;
+  const lunasRows = rows.filter(r=>r.statusBayar!=='belum');
+  const totalLunas = lunasRows.length;
+  const totalBelum = totalFaktur - totalLunas;
+  const lamaList = lunasRows.map(r=>r.lamaPelunasan).filter(v=>v!=null);
+  const rata = lamaList.length ? (lamaList.reduce((s,v)=>s+v,0)/lamaList.length) : null;
+  const tercepat = lamaList.length ? Math.min(...lamaList) : null;
+  const terlama = lamaList.length ? Math.max(...lamaList) : null;
+  const cepat = rows.filter(r=>r.statusBayar==='cepat').length;
+  const tepat = rows.filter(r=>r.statusBayar==='tepat').length;
+  const telat = rows.filter(r=>r.statusBayar==='telat').length;
+
+  document.getElementById('tr-total-faktur').textContent = totalFaktur;
+  document.getElementById('tr-total-lunas').textContent = totalLunas;
+  document.getElementById('tr-total-belum').textContent = totalBelum;
+  document.getElementById('tr-rata').textContent = rata!=null ? rata.toFixed(1)+' Hari' : '-';
+  document.getElementById('tr-tercepat').textContent = tercepat!=null ? tercepat+' Hari' : '-';
+  document.getElementById('tr-terlama').textContent = terlama!=null ? terlama+' Hari' : '-';
+  document.getElementById('tr-lebih-cepat').textContent = cepat;
+  document.getElementById('tr-tepat-waktu').textContent = tepat;
+  document.getElementById('tr-terlambat').textContent = telat;
+}
+
+function renderTrenChart(rows){
+  const box = document.getElementById('tr-chart');
+  const byMonth = new Map();
+  rows.filter(r=>r.lamaPelunasan!=null).forEach(r=>{
+    const key = (r.tanggalFaktur||'').slice(0,7); // YYYY-MM
+    if(!key) return;
+    if(!byMonth.has(key)) byMonth.set(key, []);
+    byMonth.get(key).push(r.lamaPelunasan);
+  });
+  const keys = [...byMonth.keys()].sort();
+  if(keys.length===0){ box.innerHTML = `<div style="color:var(--ink-soft);font-size:13px;">Belum ada faktur lunas untuk ditampilkan trennya.</div>`; return; }
+  const avgs = keys.map(k=>{ const arr = byMonth.get(k); return arr.reduce((s,v)=>s+v,0)/arr.length; });
+  const maxAvg = Math.max(...avgs, 1);
+  box.innerHTML = keys.map((k,i)=>{
+    const avg = avgs[i];
+    const h = Math.max(6, Math.round((avg/maxAvg)*110));
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto;">
+      <div style="font-size:11px;color:var(--ink-soft);">${avg.toFixed(1)}h</div>
+      <div style="width:26px;height:${h}px;background:var(--steel);border-radius:4px 4px 0 0;"></div>
+      <div style="font-size:10px;color:var(--ink-soft);writing-mode:vertical-rl;">${k}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTrenTable(rows){
+  const tbody = document.getElementById('tren-table');
+  tbody.innerHTML = rows.length ? rows.map(r=>`
+    <tr>
+      <td class="kode">${escapeHtml(r.inv.nomor)}</td>
+      <td class="mono">${escapeHtml(r.tokoId||'-')}</td>
+      <td>${escapeHtml(r.tokoNama)}</td>
+      <td>${fmtDate(r.tanggalFaktur)}</td>
+      <td class="center">${r.termin>0 ? r.termin+' Hari' : 'Cash'}</td>
+      <td>${r.termin>0 ? fmtDate(r.jatuhTempo) : '-'}</td>
+      <td>${r.lunasAt ? fmtDate(new Date(r.lunasAt).toISOString().slice(0,10)) : '-'}</td>
+      <td class="center">${r.lamaPelunasan!=null ? r.lamaPelunasan+' Hari' : '-'}</td>
+      <td class="center"><span class="badge ${STATUS_BAYAR_BADGE[r.statusBayar]}">${STATUS_BAYAR_LABEL[r.statusBayar]}</span></td>
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="9">Tidak ada data faktur yang sesuai.</td></tr>`;
+}
+
+function renderRiwayatTokoPanel(rows){
+  const panel = document.getElementById('tr-riwayat-toko-panel');
+  if(!trenRiwayatToko){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  document.getElementById('tr-riwayat-toko-title').textContent = 'Riwayat Pembayaran — ' + trenRiwayatToko;
+  const totalFaktur = rows.length;
+  const totalNilai = rows.reduce((s,r)=>s+r.inv.total,0);
+  const lunasRows = rows.filter(r=>r.statusBayar!=='belum');
+  const totalLunas = lunasRows.length;
+  const totalBelum = totalFaktur - totalLunas;
+  const lamaList = lunasRows.map(r=>r.lamaPelunasan).filter(v=>v!=null);
+  const rata = lamaList.length ? (lamaList.reduce((s,v)=>s+v,0)/lamaList.length) : null;
+  const tercepat = lamaList.length ? Math.min(...lamaList) : null;
+  const terlama = lamaList.length ? Math.max(...lamaList) : null;
+  const cepat = rows.filter(r=>r.statusBayar==='cepat').length;
+  const tepat = rows.filter(r=>r.statusBayar==='tepat').length;
+  const telat = rows.filter(r=>r.statusBayar==='telat').length;
+  document.getElementById('tr-riwayat-toko-stats').innerHTML = `
+    <div class="card"><div class="tag">Total Faktur</div><div class="val">${totalFaktur}</div></div>
+    <div class="card steel"><div class="tag">Total Nilai Faktur</div><div class="val">${rupiah(totalNilai)}</div></div>
+    <div class="card success"><div class="tag">Total Lunas</div><div class="val">${totalLunas}</div></div>
+    <div class="card danger"><div class="tag">Total Belum Lunas</div><div class="val">${totalBelum}</div></div>
+    <div class="card"><div class="tag">Rata-rata Lama Pelunasan</div><div class="val">${rata!=null?rata.toFixed(1)+' Hari':'-'}</div></div>
+    <div class="card success"><div class="tag">Pelunasan Tercepat</div><div class="val">${tercepat!=null?tercepat+' Hari':'-'}</div></div>
+    <div class="card danger"><div class="tag">Pelunasan Terlama</div><div class="val">${terlama!=null?terlama+' Hari':'-'}</div></div>
+    <div class="card success"><div class="tag">Jumlah Lebih Cepat</div><div class="val">${cepat}</div></div>
+    <div class="card"><div class="tag">Jumlah Tepat Waktu</div><div class="val">${tepat}</div></div>
+    <div class="card danger"><div class="tag">Jumlah Terlambat</div><div class="val">${telat}</div></div>
+  `;
+}
+
+function renderTrenPembayaran(){
+  const allRows = computeTrendRows();
+  populateTrenFilters(allRows);
+  const rows = filteredTrenRows();
+  renderTrenSummary(rows);
+  renderTrenChart(rows);
+  renderTrenTable(rows);
+  renderRiwayatTokoPanel(rows);
+}
+['tren-search','tren-bulan-filter','tren-tahun-filter','tren-status-filter','tren-sort'].forEach(id=>{
+  const el = document.getElementById(id);
+  const evt = (el.tagName==='SELECT') ? 'change' : 'input';
+  el.addEventListener(evt, renderTrenPembayaran);
+});
+document.getElementById('tren-table').addEventListener('click', e=>{
+  const row = e.target.closest('tr');
+  if(!row) return;
+  const tokoNama = row.children[2]?.textContent;
+  if(tokoNama){
+    trenRiwayatToko = tokoNama;
+    renderTrenPembayaran();
+    document.getElementById('tr-riwayat-toko-panel').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+});
+document.getElementById('btn-tutup-riwayat-toko').addEventListener('click', ()=>{
+  trenRiwayatToko = null;
+  renderTrenPembayaran();
+});
+document.getElementById('btn-export-tren').addEventListener('click', ()=>{
+  const rows = filteredTrenRows();
+  const header = ['No Faktur','ID Toko','Nama Toko','Tanggal Faktur','Termin','Jatuh Tempo','Tanggal Pelunasan','Lama Pelunasan','Status'];
+  const dataRows = rows.map(r=>[
+    r.inv.nomor, r.tokoId||'-', r.tokoNama,
+    fmtDate(r.tanggalFaktur),
+    r.termin>0 ? r.termin+' Hari' : 'Cash',
+    r.termin>0 ? fmtDate(r.jatuhTempo) : '-',
+    r.lunasAt ? fmtDate(new Date(r.lunasAt).toISOString().slice(0,10)) : '-',
+    r.lamaPelunasan!=null ? r.lamaPelunasan+' Hari' : '-',
+    STATUS_BAYAR_LABEL[r.statusBayar]
+  ]);
+  exportRowsToCSV(trenRiwayatToko ? ('Riwayat_Pembayaran_'+trenRiwayatToko.replace(/\s+/g,'_')) : 'Tren_Pembayaran', header, dataRows);
+});
+
 /* ============ MARGIN PER TOKO ============ */
 let marginFilter = 'semua';
 document.getElementById('margin-filter').addEventListener('click', e=>{
@@ -2011,6 +2747,59 @@ document.getElementById('pembelian-filter').addEventListener('click', e=>{
 });
 document.getElementById('pembelian-search').addEventListener('input', renderPembelianTable);
 document.getElementById('pembelian-sort').addEventListener('change', renderPembelianTable);
+
+function exportPembelianToExcel(){
+  const q = (document.getElementById('pembelian-search').value||'').toLowerCase();
+  const sortMode = document.getElementById('pembelian-sort').value;
+  let list = [...purchases];
+  if(pembelianFilter!=='semua') list = list.filter(p=>p.status===pembelianFilter);
+  if(q) list = list.filter(p=> p.supplier.toLowerCase().includes(q) || p.kode.toLowerCase().includes(q));
+
+  if(sortMode==='lama'){
+    list.sort((a,b)=> (a.tanggal||'').localeCompare(b.tanggal||'') || (a.createdAt-b.createdAt));
+  } else if(sortMode==='supplier'){
+    const totalPerSupplier = {};
+    list.forEach(p=>{ totalPerSupplier[p.supplier] = (totalPerSupplier[p.supplier]||0) + p.total; });
+    list.sort((a,b)=> (totalPerSupplier[b.supplier]-totalPerSupplier[a.supplier]) || (b.tanggal||'').localeCompare(a.tanggal||''));
+  } else {
+    list.sort((a,b)=> ((b.tanggal||'').localeCompare(a.tanggal||'')) || (b.createdAt-a.createdAt));
+  }
+
+  if(list.length===0){ showToast('Tidak ada data pembelian untuk diexport.', true); return; }
+
+  const header = ['No. PB','Tanggal','Nama Supplier','Kode Barang','Nama Barang','Qty Masuk','Harga Beli','Total','Status'];
+  const rows = [header];
+  list.forEach(p=>{
+    rows.push([
+      p.nomor,
+      fmtDate(p.tanggal),
+      p.supplier||'-',
+      p.kode,
+      p.nama,
+      p.qty,
+      p.harga,
+      p.total,
+      p.status==='lunas' ? 'Lunas' : 'Belum Lunas'
+    ]);
+  });
+
+  const csvEscape = v => {
+    const s = String(v==null?'':v);
+    return /[",;\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  };
+  const csv = '\uFEFF' + rows.map(r=>r.map(csvEscape).join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pembelian-supplier-' + todayISO() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Data pembelian berhasil diexport ke Excel (CSV).');
+}
+document.getElementById('btn-export-pembelian').addEventListener('click', exportPembelianToExcel);
 
 function renderPembelianTable(){
   const q = (document.getElementById('pembelian-search').value||'').toLowerCase();
