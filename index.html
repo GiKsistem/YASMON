@@ -501,7 +501,7 @@
         <div class="form-row" style="position:relative;">
           <div class="field" style="flex:2;">
             <label>Masukkan ID atau Nama Toko</label>
-            <input type="text" id="f-pilih-toko" placeholder="mis. SSL-YMA1-DIO atau Dio Motor" autocomplete="off">
+            <input type="text" id="f-pilih-toko" autocomplete="off">
             <div id="f-pilih-toko-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,.12);z-index:20;max-height:220px;overflow:auto;"></div>
           </div>
           <div class="field" id="f-toko-selected-wrap" style="display:none;">
@@ -554,7 +554,7 @@
           </div>
           <div class="field">
             <label>Harga Satuan</label>
-            <input type="number" id="f-harga-preview" placeholder="0">
+            <input type="text" inputmode="numeric" id="f-harga-preview" placeholder="Rp 0">
           </div>
         </div>
         <button class="btn btn-dark" id="btn-add-item">+ Tambah ke Faktur</button>
@@ -1083,6 +1083,16 @@ async function saveKey(key, value){
 function rupiah(n){
   n = Number(n)||0;
   return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+}
+// Format & parse untuk input harga bertuliskan "Rp" biar user gak ragu pas ngetik harga
+function formatRupiahLive(value){
+  const digits = String(value==null?'':value).replace(/[^\d]/g,'');
+  if(!digits) return '';
+  return 'Rp ' + Number(digits).toLocaleString('id-ID');
+}
+function parseRupiahLive(value){
+  const digits = String(value==null?'':value).replace(/[^\d]/g,'');
+  return digits ? Number(digits) : 0;
 }
 function fmtDate(iso){
   if(!iso) return '-';
@@ -1854,11 +1864,13 @@ document.getElementById('f-pilih-toko-results')?.addEventListener('click', e=>{
   document.getElementById('f-customer').value = s.nama || s.id;
   if(s.alamat) document.getElementById('f-alamat').value = s.alamat;
   if(s.hp) document.getElementById('f-telp').value = s.hp;
+  updateHargaPreview();
 });
 document.getElementById('btn-clear-toko-selected')?.addEventListener('click', ()=>{
   selectedTokoForInvoice = null;
   document.getElementById('f-toko-selected-wrap').style.display='none';
   document.getElementById('f-toko-selected-label').textContent = '';
+  updateHargaPreview();
 });
 
 /* ============ BUAT FAKTUR ============ */
@@ -1871,15 +1883,37 @@ function populateBarangSelect(){
   updateHargaPreview();
 }
 document.getElementById('f-select-barang').addEventListener('change', updateHargaPreview);
-function updateHargaPreview(){
-  // Harga jual tidak diisi otomatis — ditentukan manual tiap faktur karena beda-beda per toko.
-  document.getElementById('f-harga-preview').value = '';
+document.getElementById('f-customer').addEventListener('input', updateHargaPreview);
+
+// Cari harga terakhir yang pernah dipakai toko/pelanggan ini untuk SKU tertentu,
+// dilihat dari riwayat faktur (yang paling baru menang).
+function getLastPriceForCustomerSku(customerName, kode){
+  const name = String(customerName||'').trim().toLowerCase();
+  if(!name || !kode) return null;
+  for(let i=invoices.length-1; i>=0; i--){
+    const inv = invoices[i];
+    if(String(inv.customer||'').trim().toLowerCase() !== name) continue;
+    const item = (inv.items||[]).find(it=>it.kode===kode);
+    if(item) return item.harga;
+  }
+  return null;
 }
+
+function updateHargaPreview(){
+  const kode = document.getElementById('f-select-barang').value;
+  const customerName = document.getElementById('f-customer').value;
+  const input = document.getElementById('f-harga-preview');
+  const last = getLastPriceForCustomerSku(customerName, kode);
+  input.value = last!=null ? formatRupiahLive(last) : '';
+}
+document.getElementById('f-harga-preview').addEventListener('input', e=>{
+  e.target.value = formatRupiahLive(e.target.value);
+});
 
 document.getElementById('btn-add-item').addEventListener('click', ()=>{
   const kode = document.getElementById('f-select-barang').value;
   const qty = Number(document.getElementById('f-qty').value)||0;
-  const hargaInput = Number(document.getElementById('f-harga-preview').value)||0;
+  const hargaInput = parseRupiahLive(document.getElementById('f-harga-preview').value);
   if(hargaInput<=0){ showToast('Isi harga jual untuk barang ini terlebih dahulu.', true); return; }
   const p = products.find(x=>x.kode===kode);
   if(!p){ showToast('Pilih barang terlebih dahulu.', true); return; }
