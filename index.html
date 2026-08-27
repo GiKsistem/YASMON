@@ -340,9 +340,9 @@
           <div class="tag">Estimasi Laba Bersih 🔒</div>
           <div class="val" id="d-laba">********</div>
         </div>
-        <div class="card purple" id="modal-pertama-card">
-          <div class="tag">Modal Pertama <span id="mp-lock-icon" style="display:none;">🔒</span></div>
-          <div class="val" id="d-modal-pertama">Rp 0</div>
+        <div class="card purple" id="modal-pertama-card" style="cursor:pointer;user-select:none;" title="Klik dua kali untuk buka dengan password">
+          <div class="tag">Modal Pertama 🔒</div>
+          <div class="val" id="d-modal-pertama">********</div>
         </div>
       </div>
 
@@ -1057,7 +1057,8 @@ let labaRevealed = false;
 let labaValueCache = 0;
 // Saldo kas dikunci pada satu titik (snapshot), lalu ke depannya cuma ditambah/dikurang
 // suntikan & pengembalian baru + transaksi baru (faktur/pembelian/pengeluaran) yang masuk SETELAH titik kunci ini.
-let kasProfile = {saldoTerkunci:0, snapshotMasuk:0, snapshotPembelian:0, snapshotPengeluaran:0, suntikanBaru:0, pengembalianBaru:0, modalPertama:0, modalPertamaLocked:false};
+let kasProfile = {saldoTerkunci:0, snapshotMasuk:0, snapshotPembelian:0, snapshotPengeluaran:0, suntikanBaru:0, pengembalianBaru:0, modalPertama:21602500, modalPertamaLocked:true};
+let modalPertamaRevealed = false;
 let cart = [];
 let lastSavedInvoice = null;
 let editingKode = null;
@@ -1108,6 +1109,7 @@ async function reloadStateFromCache(){
   purchaseCounter = firestoreCache.purchaseCounter || 0;
   companyProfile = firestoreCache.companyProfile || {alamat:'', hp:'', ig:'', rek:''};
   kasProfile = firestoreCache.kasProfile || kasProfile;
+  if(!kasProfile.modalPertamaLocked){ kasProfile.modalPertama = 21602500; kasProfile.modalPertamaLocked = true; }
   document.getElementById('cp-alamat').value = companyProfile.alamat||'';
   document.getElementById('cp-hp').value = companyProfile.hp||'';
   document.getElementById('cp-ig').value = companyProfile.ig||'';
@@ -1256,6 +1258,11 @@ async function init(){
     suntikanBaru: 0,
     pengembalianBaru: 0
   });
+  if(!kasProfile.modalPertamaLocked){
+    kasProfile.modalPertama = 21602500;
+    kasProfile.modalPertamaLocked = true;
+    await saveKey('kasProfile', kasProfile);
+  }
 
   // Impor data awal dari spreadsheet hanya sekali, saat semuanya masih kosong
   if(products.length===0 && invoices.length===0 && purchases.length===0 && expenses.length===0){
@@ -1392,7 +1399,7 @@ function renderDashboard(){
     + deltaMasuk - deltaPembelian - deltaPengeluaran;
 
   document.getElementById('d-saldo-kas').textContent = rupiah(saldoKas);
-  document.getElementById('d-modal-pertama').textContent = rupiah(kasProfile.modalPertama||0);
+  document.getElementById('d-modal-pertama').textContent = modalPertamaRevealed ? rupiah(kasProfile.modalPertama||0) : '********';
 
   const dTotalToko = document.getElementById('d-total-toko');
   if(dTotalToko){
@@ -1473,6 +1480,19 @@ document.getElementById('laba-card').addEventListener('dblclick', async ()=>{
   if(ok){
     labaRevealed = true;
     document.getElementById('d-laba').textContent = rupiah(labaValueCache);
+  }
+});
+
+document.getElementById('modal-pertama-card').addEventListener('dblclick', async ()=>{
+  if(modalPertamaRevealed){
+    modalPertamaRevealed = false;
+    document.getElementById('d-modal-pertama').textContent = '********';
+    return;
+  }
+  const ok = await askPassword('Masukkan password untuk melihat Modal Pertama.');
+  if(ok){
+    modalPertamaRevealed = true;
+    document.getElementById('d-modal-pertama').textContent = rupiah(kasProfile.modalPertama||0);
   }
 });
 
