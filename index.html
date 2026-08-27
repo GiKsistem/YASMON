@@ -340,6 +340,10 @@
           <div class="tag">Estimasi Laba Bersih 🔒</div>
           <div class="val" id="d-laba">********</div>
         </div>
+        <div class="card purple" id="modal-pertama-card">
+          <div class="tag">Modal Pertama <span id="mp-lock-icon" style="display:none;">🔒</span></div>
+          <div class="val" id="d-modal-pertama">Rp 0</div>
+        </div>
       </div>
 
       <div class="panel">
@@ -363,6 +367,15 @@
           <div class="field"><label>Pengembalian Baru (Rp)</label><input type="number" id="kf-balik" placeholder="0"></div>
         </div>
         <button class="btn btn-primary" id="btn-save-kas">Simpan</button>
+      </div>
+
+      <div class="panel">
+        <h3>Modal Pertama (Modal Awal Usaha)</h3>
+        <p class="hint" id="mp-hint">Isi modal pertama/awal usaha sekali saja, lalu klik "Kunci Modal Pertama". Setelah dikunci, angka ini <b>tidak bisa diubah lagi</b> supaya jadi patokan modal awal yang tetap.</p>
+        <div class="form-row" style="max-width:420px;">
+          <div class="field"><label>Modal Pertama (Rp)</label><input type="number" id="mp-input" placeholder="0"></div>
+        </div>
+        <button class="btn btn-primary" id="btn-lock-modal-pertama">Kunci Modal Pertama</button>
       </div>
 
       <div class="panel">
@@ -1044,7 +1057,7 @@ let labaRevealed = false;
 let labaValueCache = 0;
 // Saldo kas dikunci pada satu titik (snapshot), lalu ke depannya cuma ditambah/dikurang
 // suntikan & pengembalian baru + transaksi baru (faktur/pembelian/pengeluaran) yang masuk SETELAH titik kunci ini.
-let kasProfile = {saldoTerkunci:0, snapshotMasuk:0, snapshotPembelian:0, snapshotPengeluaran:0, suntikanBaru:0, pengembalianBaru:0};
+let kasProfile = {saldoTerkunci:0, snapshotMasuk:0, snapshotPembelian:0, snapshotPengeluaran:0, suntikanBaru:0, pengembalianBaru:0, modalPertama:0, modalPertamaLocked:false};
 let cart = [];
 let lastSavedInvoice = null;
 let editingKode = null;
@@ -1101,6 +1114,7 @@ async function reloadStateFromCache(){
   document.getElementById('cp-rek').value = companyProfile.rek||'';
   document.getElementById('kf-suntik').value = kasProfile.suntikanBaru||0;
   document.getElementById('kf-balik').value = kasProfile.pengembalianBaru||0;
+  applyModalPertamaUI();
 }
 
 async function loadKey(key, fallback){
@@ -1270,6 +1284,7 @@ async function init(){
   document.getElementById('cp-rek').value = companyProfile.rek||'';
   document.getElementById('kf-suntik').value = kasProfile.suntikanBaru||0;
   document.getElementById('kf-balik').value = kasProfile.pengembalianBaru||0;
+  applyModalPertamaUI();
 
   renderAll();
 }
@@ -1377,6 +1392,7 @@ function renderDashboard(){
     + deltaMasuk - deltaPembelian - deltaPengeluaran;
 
   document.getElementById('d-saldo-kas').textContent = rupiah(saldoKas);
+  document.getElementById('d-modal-pertama').textContent = rupiah(kasProfile.modalPertama||0);
 
   const dTotalToko = document.getElementById('d-total-toko');
   if(dTotalToko){
@@ -1468,6 +1484,44 @@ document.getElementById('btn-save-kas').addEventListener('click', async ()=>{
   showToast('Suntikan/pengembalian tersimpan. Saldo kas dihitung ulang.');
 });
 
+// Modal Pertama: sekali dikunci, tidak bisa diubah lagi (input & tombol dinonaktifkan permanen).
+function applyModalPertamaUI(){
+  const input = document.getElementById('mp-input');
+  const btn = document.getElementById('btn-lock-modal-pertama');
+  const hint = document.getElementById('mp-hint');
+  const lockIcon = document.getElementById('mp-lock-icon');
+  if(!input || !btn) return;
+  if(kasProfile.modalPertamaLocked){
+    input.value = kasProfile.modalPertama||0;
+    input.disabled = true;
+    btn.disabled = true;
+    btn.textContent = 'Sudah Dikunci 🔒';
+    if(hint) hint.innerHTML = 'Modal pertama sudah dikunci di <b>'+rupiah(kasProfile.modalPertama||0)+'</b> dan tidak bisa diubah lagi.';
+    if(lockIcon) lockIcon.style.display = 'inline';
+  } else {
+    input.value = kasProfile.modalPertama||0;
+    input.disabled = false;
+    btn.disabled = false;
+    btn.textContent = 'Kunci Modal Pertama';
+    if(hint) hint.innerHTML = 'Isi modal pertama/awal usaha sekali saja, lalu klik "Kunci Modal Pertama". Setelah dikunci, angka ini <b>tidak bisa diubah lagi</b> supaya jadi patokan modal awal yang tetap.';
+    if(lockIcon) lockIcon.style.display = 'none';
+  }
+}
+
+document.getElementById('btn-lock-modal-pertama').addEventListener('click', async ()=>{
+  if(kasProfile.modalPertamaLocked){ return; }
+  const val = Number(document.getElementById('mp-input').value) || 0;
+  if(val <= 0){ showToast('Isi dulu nominal modal pertama.', true); return; }
+  const yakin = confirm('Yakin mau kunci Modal Pertama di '+rupiah(val)+'?\n\nSetelah dikunci, angka ini TIDAK BISA diubah lagi selamanya.');
+  if(!yakin) return;
+  kasProfile.modalPertama = val;
+  kasProfile.modalPertamaLocked = true;
+  await saveKey('kasProfile', kasProfile);
+  applyModalPertamaUI();
+  renderDashboard();
+  showToast('Modal Pertama berhasil dikunci: '+rupiah(val));
+});
+
 /* ============ BACKUP & RESTORE DATA ============ */
 document.getElementById('btn-backup-download').addEventListener('click', ()=>{
   const backup = {
@@ -1539,6 +1593,7 @@ document.getElementById('btn-backup-restore').addEventListener('click', async ()
   document.getElementById('cp-rek').value = companyProfile.rek||'';
   document.getElementById('kf-suntik').value = kasProfile.suntikanBaru||0;
   document.getElementById('kf-balik').value = kasProfile.pengembalianBaru||0;
+  applyModalPertamaUI();
 
   renderDashboard();
   renderStokTable();
@@ -2833,12 +2888,24 @@ function exportPembelianToExcel(){
 
   if(list.length===0){ showToast('Tidak ada data pembelian untuk diexport.', true); return; }
 
-  const header = ['No. PB','Tanggal','Nama Supplier','Kode Barang','Nama Barang','Qty Masuk','Harga Beli','Total','Status'];
+  const header = ['No. PB','Tanggal','Bulan','Tahun','Nama Supplier','Kode Barang','Nama Barang','Qty Masuk','Harga Beli','Total','Status'];
   const rows = [header];
+  const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   list.forEach(p=>{
+    let tgl = '-', bln = '-', thn = '-';
+    if(p.tanggal){
+      const d = new Date(p.tanggal+'T00:00:00');
+      if(!isNaN(d)){
+        tgl = d.getDate();
+        bln = NAMA_BULAN[d.getMonth()];
+        thn = d.getFullYear();
+      }
+    }
     rows.push([
       p.nomor,
-      fmtDate(p.tanggal),
+      tgl,
+      bln,
+      thn,
       p.supplier||'-',
       p.kode,
       p.nama,
