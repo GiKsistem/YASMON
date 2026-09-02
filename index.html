@@ -141,6 +141,7 @@
   .badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;}
   .badge-lunas{background:var(--success-tint);color:var(--success);}
   .badge-belum{background:var(--danger-tint);color:var(--danger);}
+  .badge-cicil{background:var(--purple-tint);color:var(--purple);}
   .badge-low{background:var(--danger-tint);color:var(--danger);}
 
   .table-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
@@ -367,15 +368,6 @@
           <div class="field"><label>Pengembalian Baru (Rp)</label><input type="number" id="kf-balik" placeholder="0"></div>
         </div>
         <button class="btn btn-primary" id="btn-save-kas">Simpan</button>
-      </div>
-
-      <div class="panel">
-        <h3>Modal Pertama (Modal Awal Usaha)</h3>
-        <p class="hint" id="mp-hint">Isi modal pertama/awal usaha sekali saja, lalu klik "Kunci Modal Pertama". Setelah dikunci, angka ini <b>tidak bisa diubah lagi</b> supaya jadi patokan modal awal yang tetap.</p>
-        <div class="form-row" style="max-width:420px;">
-          <div class="field"><label>Modal Pertama (Rp)</label><input type="number" id="mp-input" placeholder="0"></div>
-        </div>
-        <button class="btn btn-primary" id="btn-lock-modal-pertama">Kunci Modal Pertama</button>
       </div>
 
       <div class="panel">
@@ -968,6 +960,37 @@
   </div>
 </div>
 
+<!-- MODAL LUNAS / CICIL -->
+<div class="overlay" id="lunas-overlay">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h3>Pelunasan Faktur</h3>
+      <button class="modal-close" id="lunas-close">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <p id="lunas-desc" style="margin:0 0 6px;color:var(--ink-soft);font-size:13px;"></p>
+      <p style="margin:0 0 18px;font-family:var(--mono);font-size:16px;font-weight:600;color:var(--accent-dark);">Sisa Tagihan: <span id="lunas-sisa">Rp0</span></p>
+
+      <div id="lunas-pilihan" style="display:flex;gap:10px;">
+        <button class="btn btn-success" id="lunas-pilih-lunas" style="flex:1;justify-content:center;">Lunas<br>(Bayar Penuh)</button>
+        <button class="btn btn-dark" id="lunas-pilih-cicil" style="flex:1;justify-content:center;">Cicil<br>(Bayar Sebagian)</button>
+      </div>
+
+      <div id="lunas-cicil-form" style="display:none;margin-top:16px;">
+        <div class="field">
+          <label>Jumlah Bayar Cicilan</label>
+          <input type="number" id="lunas-cicil-jumlah" min="1">
+        </div>
+        <p style="margin:8px 0 0;color:var(--ink-soft);font-size:12px;">Jumlah ini akan mengurangi sisa tagihan toko. Jika jumlah bayar sama dengan atau melebihi sisa tagihan, faktur otomatis ditandai Lunas.</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="lunas-cancel">Batal</button>
+      <button class="btn btn-primary" id="lunas-cicil-simpan" style="display:none;">Simpan Cicilan</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PASSWORD -->
 <div class="overlay" id="password-overlay">
   <div class="modal" style="max-width:380px;">
@@ -1528,19 +1551,22 @@ function applyModalPertamaUI(){
   }
 }
 
-document.getElementById('btn-lock-modal-pertama').addEventListener('click', async ()=>{
-  if(kasProfile.modalPertamaLocked){ return; }
-  const val = Number(document.getElementById('mp-input').value) || 0;
-  if(val <= 0){ showToast('Isi dulu nominal modal pertama.', true); return; }
-  const yakin = confirm('Yakin mau kunci Modal Pertama di '+rupiah(val)+'?\n\nSetelah dikunci, angka ini TIDAK BISA diubah lagi selamanya.');
-  if(!yakin) return;
-  kasProfile.modalPertama = val;
-  kasProfile.modalPertamaLocked = true;
-  await saveKey('kasProfile', kasProfile);
-  applyModalPertamaUI();
-  renderDashboard();
-  showToast('Modal Pertama berhasil dikunci: '+rupiah(val));
-});
+const btnLockModalPertama = document.getElementById('btn-lock-modal-pertama');
+if(btnLockModalPertama){
+  btnLockModalPertama.addEventListener('click', async ()=>{
+    if(kasProfile.modalPertamaLocked){ return; }
+    const val = Number(document.getElementById('mp-input').value) || 0;
+    if(val <= 0){ showToast('Isi dulu nominal modal pertama.', true); return; }
+    const yakin = confirm('Yakin mau kunci Modal Pertama di '+rupiah(val)+'?\n\nSetelah dikunci, angka ini TIDAK BISA diubah lagi selamanya.');
+    if(!yakin) return;
+    kasProfile.modalPertama = val;
+    kasProfile.modalPertamaLocked = true;
+    await saveKey('kasProfile', kasProfile);
+    applyModalPertamaUI();
+    renderDashboard();
+    showToast('Modal Pertama berhasil dikunci: '+rupiah(val));
+  });
+}
 
 /* ============ BACKUP & RESTORE DATA ============ */
 document.getElementById('btn-backup-download').addEventListener('click', ()=>{
@@ -2090,7 +2116,8 @@ async function simpanFakturBaru(){
     total,
     status,
     createdAt: nowTs,
-    lunasAt: status==='lunas' ? nowTs : null
+    lunasAt: status==='lunas' ? nowTs : null,
+    payments: []
   };
 
   cart.forEach(c=>{
@@ -2175,6 +2202,91 @@ document.getElementById('tagihan-search').addEventListener('input', renderTagiha
 document.getElementById('tagihan-sort').addEventListener('change', renderTagihanTable);
 document.getElementById('tagihan-toko-filter').addEventListener('change', renderTagihanTable);
 
+/* ============ CICILAN / PEMBAYARAN SEBAGIAN FAKTUR ============ */
+function totalDibayarInvoice(inv){
+  return (inv.payments||[]).reduce((s,p)=>s+(Number(p.jumlah)||0),0);
+}
+function sisaTagihanInvoice(inv){
+  if(inv.status==='lunas') return 0;
+  return Math.max(0, (inv.total||0) - totalDibayarInvoice(inv));
+}
+function statusBadgeInvoice(inv){
+  if(inv.status==='lunas') return {cls:'badge-lunas', text:'Lunas'};
+  if(totalDibayarInvoice(inv) > 0) return {cls:'badge-cicil', text:'Cicil'};
+  return {cls:'badge-belum', text:'Belum Lunas'};
+}
+
+let activeLunasInvoiceId = null;
+function openLunasModal(inv){
+  activeLunasInvoiceId = inv.id;
+  document.getElementById('lunas-desc').textContent = 'Faktur '+inv.nomor+' — '+(inv.customer||'Pelanggan Umum');
+  document.getElementById('lunas-sisa').textContent = rupiah(sisaTagihanInvoice(inv));
+  document.getElementById('lunas-pilihan').style.display = 'flex';
+  document.getElementById('lunas-cicil-form').style.display = 'none';
+  document.getElementById('lunas-cicil-simpan').style.display = 'none';
+  document.getElementById('lunas-cicil-jumlah').value = '';
+  document.getElementById('lunas-overlay').classList.add('open');
+}
+function closeLunasModal(){
+  activeLunasInvoiceId = null;
+  document.getElementById('lunas-overlay').classList.remove('open');
+}
+document.getElementById('lunas-close').addEventListener('click', closeLunasModal);
+document.getElementById('lunas-cancel').addEventListener('click', closeLunasModal);
+
+document.getElementById('lunas-pilih-cicil').addEventListener('click', ()=>{
+  const inv = invoices.find(x=>x.id===activeLunasInvoiceId);
+  if(!inv) return;
+  document.getElementById('lunas-cicil-form').style.display = 'block';
+  document.getElementById('lunas-cicil-simpan').style.display = 'inline-flex';
+  document.getElementById('lunas-cicil-jumlah').value = sisaTagihanInvoice(inv);
+  document.getElementById('lunas-cicil-jumlah').focus();
+});
+
+document.getElementById('lunas-pilih-lunas').addEventListener('click', async ()=>{
+  const inv = invoices.find(x=>x.id===activeLunasInvoiceId);
+  if(!inv) return;
+  const ok = await askPassword('Masukkan password untuk melunasi faktur '+inv.nomor+'.');
+  if(!ok) return;
+  const sisa = sisaTagihanInvoice(inv);
+  if(sisa>0){
+    inv.payments = inv.payments || [];
+    inv.payments.push({tanggal: todayISO(), jumlah: sisa, ts: Date.now()});
+  }
+  inv.status = 'lunas';
+  inv.lunasAt = Date.now();
+  await saveKey('invoices', invoices);
+  closeLunasModal();
+  renderTagihanTable();
+  renderDashboard();
+  showToast(inv.nomor+' ditandai Lunas.');
+});
+
+document.getElementById('lunas-cicil-simpan').addEventListener('click', async ()=>{
+  const inv = invoices.find(x=>x.id===activeLunasInvoiceId);
+  if(!inv) return;
+  const sisa = sisaTagihanInvoice(inv);
+  let jumlah = Number(document.getElementById('lunas-cicil-jumlah').value)||0;
+  if(jumlah<=0){ showToast('Isi jumlah bayar cicilan dengan benar.', true); return; }
+  if(jumlah>sisa) jumlah = sisa;
+  const ok = await askPassword('Masukkan password untuk mencatat cicilan faktur '+inv.nomor+'.');
+  if(!ok) return;
+  inv.payments = inv.payments || [];
+  inv.payments.push({tanggal: todayISO(), jumlah, ts: Date.now()});
+  const sisaBaru = sisaTagihanInvoice(inv);
+  if(sisaBaru<=0){
+    inv.status = 'lunas';
+    inv.lunasAt = Date.now();
+  }
+  await saveKey('invoices', invoices);
+  closeLunasModal();
+  renderTagihanTable();
+  renderDashboard();
+  showToast(sisaBaru<=0
+    ? (inv.nomor+' lunas setelah cicilan terakhir.')
+    : ('Cicilan '+rupiah(jumlah)+' tercatat untuk '+inv.nomor+'. Sisa tagihan: '+rupiah(sisaBaru)+'.'));
+});
+
 function populateTagihanTokoFilter(){
   const sel = document.getElementById('tagihan-toko-filter');
   const current = sel.value;
@@ -2201,48 +2313,57 @@ function renderTagihanTable(){
   const tbody = document.getElementById('tagihan-table');
 
   if(sortMode === 'toko'){
-    thead.innerHTML = `<th>Toko / Pelanggan</th><th class="center">Jumlah Faktur</th><th class="right">Total Tagihan</th><th class="center">Status</th><th class="right">Aksi</th>`;
+    thead.innerHTML = `<th>Toko / Pelanggan</th><th class="center">Jumlah Faktur</th><th class="right">Total Tagihan</th><th class="right">Sisa Tagihan</th><th class="center">Status</th><th class="right">Aksi</th>`;
     const map = new Map();
     list.forEach(inv=>{
       const nama = (inv.customer||'').trim() || 'Pelanggan Umum';
-      if(!map.has(nama)) map.set(nama, {nama, jumlahFaktur:0, total:0, adaBelum:false});
+      if(!map.has(nama)) map.set(nama, {nama, jumlahFaktur:0, total:0, sisa:0, adaBelum:false, adaCicil:false});
       const g = map.get(nama);
       g.jumlahFaktur += 1;
       g.total += inv.total;
+      g.sisa += sisaTagihanInvoice(inv);
       if(inv.status==='belum') g.adaBelum = true;
+      if(statusBadgeInvoice(inv).cls==='badge-cicil') g.adaCicil = true;
     });
-    const grouped = Array.from(map.values()).sort((a,b)=>b.total-a.total);
-    tbody.innerHTML = grouped.length ? grouped.map(g=>`
+    const grouped = Array.from(map.values()).sort((a,b)=>b.sisa-a.sisa);
+    tbody.innerHTML = grouped.length ? grouped.map(g=>{
+      const badge = !g.adaBelum ? {cls:'badge-lunas', text:'Lunas Semua'} : (g.adaCicil ? {cls:'badge-cicil', text:'Ada Cicilan'} : {cls:'badge-belum', text:'Ada Belum Lunas'});
+      return `
       <tr>
         <td>${escapeHtml(g.nama)}</td>
         <td class="center">${g.jumlahFaktur}</td>
         <td class="right num">${rupiah(g.total)}</td>
-        <td class="center"><span class="badge ${g.adaBelum?'badge-belum':'badge-lunas'}">${g.adaBelum?'Ada Belum Lunas':'Lunas Semua'}</span></td>
+        <td class="right num">${rupiah(g.sisa)}</td>
+        <td class="center"><span class="badge ${badge.cls}">${badge.text}</span></td>
         <td class="right"><button class="btn btn-ghost btn-sm" data-lihat-toko="${escapeHtml(g.nama)}">Lihat Faktur</button></td>
-      </tr>`).join('') : `<tr class="empty-row"><td colspan="5">Tidak ada faktur.</td></tr>`;
+      </tr>`;}).join('') : `<tr class="empty-row"><td colspan="6">Tidak ada faktur.</td></tr>`;
     return;
   }
 
-  thead.innerHTML = `<th>No. Faktur</th><th>Tanggal</th><th>ID Pelanggan</th><th>Pelanggan</th><th class="right">Total</th><th class="center">Status</th><th class="right">Aksi</th>`;
+  thead.innerHTML = `<th>No. Faktur</th><th>Tanggal</th><th>ID Pelanggan</th><th>Pelanggan</th><th class="right">Total</th><th class="right">Sisa Tagihan</th><th class="center">Status</th><th class="right">Aksi</th>`;
   list.sort((a,b)=>{
     const cmp = (a.tanggal||'').localeCompare(b.tanggal||'') || (a.createdAt-b.createdAt);
     return sortMode==='lama' ? cmp : -cmp;
   });
 
-  tbody.innerHTML = list.length ? list.map(inv=>`
+  tbody.innerHTML = list.length ? list.map(inv=>{
+    const badge = statusBadgeInvoice(inv);
+    const sisa = sisaTagihanInvoice(inv);
+    return `
     <tr class="tagihan-row" data-row-id="${inv.id}" title="Klik dua kali untuk lihat rincian SKU">
       <td class="mono-cell">${escapeHtml(inv.nomor)}</td>
       <td>${fmtDate(inv.tanggal)}</td>
       <td class="mono-cell">${escapeHtml(inv.tokoId||'-')}</td>
       <td>${escapeHtml(inv.customer||'-')}</td>
       <td class="right num">${rupiah(inv.total)}</td>
-      <td class="center"><span class="badge ${inv.status==='lunas'?'badge-lunas':'badge-belum'}">${inv.status==='lunas'?'Lunas':'Belum Lunas'}</span></td>
+      <td class="right num">${rupiah(sisa)}</td>
+      <td class="center"><span class="badge ${badge.cls}">${badge.text}</span></td>
       <td class="right">
         <button class="btn btn-ghost btn-sm" data-view="${inv.id}">Lihat</button>
         ${inv.status==='belum' ? `<button class="btn btn-success btn-sm" data-lunas="${inv.id}">Lunas</button>` : `<button class="btn btn-ghost btn-sm" data-batal="${inv.id}">Batal Lunas</button>`}
         <button class="btn btn-danger btn-sm" data-delinv="${inv.id}">Hapus</button>
       </td>
-    </tr>`).join('') : `<tr class="empty-row"><td colspan="7">Tidak ada faktur.</td></tr>`;
+    </tr>`;}).join('') : `<tr class="empty-row"><td colspan="8">Tidak ada faktur.</td></tr>`;
 }
 
 function toggleTagihanDetailRow(row){
@@ -2258,7 +2379,8 @@ function toggleTagihanDetailRow(row){
   if(!inv) return;
   const detailTr = document.createElement('tr');
   detailTr.className = 'tagihan-detail-row';
-  detailTr.innerHTML = `<td colspan="7" style="background:#f6f7f9;padding:10px 14px;">
+  const payments = inv.payments||[];
+  detailTr.innerHTML = `<td colspan="8" style="background:#f6f7f9;padding:10px 14px;">
     <div style="font-weight:700;margin-bottom:6px;">Rincian Faktur ${escapeHtml(inv.nomor)} — ${escapeHtml(inv.customer||'-')}</div>
     <table style="width:100%;font-size:13px;">
       <thead><tr><th style="text-align:left;">Kode</th><th style="text-align:left;">Nama Barang</th><th class="center">Qty</th><th class="right">Harga Satuan</th><th class="right">Subtotal</th></tr></thead>
@@ -2266,6 +2388,14 @@ function toggleTagihanDetailRow(row){
         ${inv.items.map(it=>`<tr><td>${escapeHtml(it.kode)}</td><td>${escapeHtml(it.nama)}</td><td class="center">${it.qty}</td><td class="right num">${rupiah(it.harga)}</td><td class="right num">${rupiah(it.subtotal)}</td></tr>`).join('')}
       </tbody>
     </table>
+    ${payments.length ? `
+    <div style="font-weight:700;margin:12px 0 6px;">Riwayat Pembayaran / Cicilan</div>
+    <table style="width:100%;font-size:13px;">
+      <thead><tr><th style="text-align:left;">Tanggal</th><th class="right">Jumlah Bayar</th></tr></thead>
+      <tbody>
+        ${payments.map(p=>`<tr><td>${fmtDate(p.tanggal)}</td><td class="right num">${rupiah(p.jumlah)}</td></tr>`).join('')}
+      </tbody>
+    </table>` : ''}
   </div>`;
   row.after(detailTr);
 }
@@ -2285,21 +2415,24 @@ function exportTagihanToExcel(){
 
   if(list.length===0){ showToast('Tidak ada data faktur untuk diexport.', true); return; }
 
-  const header = ['No. Faktur','Tanggal','Toko/Pelanggan','Status','Kode Barang','Nama Barang','Qty','Harga Satuan','Subtotal Barang','Total Faktur'];
+  const header = ['No. Faktur','Tanggal','Toko/Pelanggan','Status','Kode Barang','Nama Barang','Qty','Harga Satuan','Subtotal Barang','Total Faktur','Sisa Tagihan'];
   const rows = [header];
   list.forEach(inv=>{
+    const badge = statusBadgeInvoice(inv);
+    const sisa = sisaTagihanInvoice(inv);
     inv.items.forEach(it=>{
       rows.push([
         inv.nomor,
         fmtDate(inv.tanggal),
         inv.customer||'-',
-        inv.status==='lunas' ? 'Lunas' : 'Belum Lunas',
+        badge.text,
         it.kode,
         it.nama,
         it.qty,
         it.harga,
         it.subtotal,
-        inv.total
+        inv.total,
+        sisa
       ]);
     });
   });
@@ -2342,16 +2475,7 @@ document.getElementById('tagihan-table').addEventListener('click', async e=>{
   }
   if(lunasBtn){
     const inv = invoices.find(i=>i.id===lunasBtn.dataset.lunas);
-    if(inv){
-      const ok = await askPassword('Masukkan password untuk melunasi faktur '+inv.nomor+'.');
-      if(!ok) return;
-      inv.status = 'lunas';
-      inv.lunasAt = Date.now();
-      await saveKey('invoices', invoices);
-      renderTagihanTable();
-      renderDashboard();
-      showToast(inv.nomor+' ditandai Lunas.');
-    }
+    if(inv) openLunasModal(inv);
   }
   if(batalBtn){
     const inv = invoices.find(i=>i.id===batalBtn.dataset.batal);
@@ -2360,10 +2484,11 @@ document.getElementById('tagihan-table').addEventListener('click', async e=>{
       if(!ok) return;
       inv.status = 'belum';
       inv.lunasAt = null;
+      inv.payments = [];
       await saveKey('invoices', invoices);
       renderTagihanTable();
       renderDashboard();
-      showToast(inv.nomor+' dibatalkan, kembali Belum Lunas.');
+      showToast(inv.nomor+' dibatalkan, kembali Belum Lunas (cicilan direset).');
     }
   }
   if(delBtn){
