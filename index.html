@@ -361,13 +361,14 @@
       </div>
 
       <div class="panel">
-        <h3>Suntikan / Pengembalian Dana (Baru)</h3>
-        <p class="hint">Isi kalau ada suntikan dana masuk atau pengembalian modal yang baru terjadi — otomatis nambah/ngurangin Saldo Kas di atas.</p>
+        <h3>Suntikan / Pengembalian Dana</h3>
+        <p class="hint">Isi kalau ada suntikan dana masuk atau pengembalian modal yang baru terjadi. Setiap Simpan dicatat sebagai satu transaksi baru dan langsung menambah/mengurangi Saldo Kas di atas (kolom akan kosong lagi setelah tersimpan, tidak perlu diisi ulang setiap kali).</p>
         <div class="form-row" style="max-width:420px;">
           <div class="field"><label>Suntikan Dana Baru (Rp)</label><input type="number" id="kf-suntik" placeholder="0"></div>
           <div class="field"><label>Pengembalian Baru (Rp)</label><input type="number" id="kf-balik" placeholder="0"></div>
         </div>
         <button class="btn btn-primary" id="btn-save-kas">Simpan</button>
+        <div id="riwayat-dana-wrap" style="margin-top:16px;"></div>
       </div>
 
       <div class="panel">
@@ -991,6 +992,74 @@
   </div>
 </div>
 
+<!-- MODAL EDIT FAKTUR -->
+<div class="overlay" id="edit-invoice-overlay">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-head">
+      <h3>Edit Faktur</h3>
+      <button class="modal-close" id="edit-invoice-close">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <p id="ei-status-hint" style="margin:0 0 14px;color:var(--ink-soft);font-size:12.5px;"></p>
+      <div class="form-row">
+        <div class="field">
+          <label>Nama Pelanggan / Toko</label>
+          <input type="text" id="ei-customer">
+        </div>
+        <div class="field">
+          <label>Tanggal</label>
+          <input type="date" id="ei-tanggal">
+        </div>
+        <div class="field">
+          <label>T.O.P (hari)</label>
+          <input type="number" id="ei-top" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Alamat (opsional)</label>
+          <input type="text" id="ei-alamat">
+        </div>
+        <div class="field">
+          <label>No. Telp (opsional)</label>
+          <input type="text" id="ei-telp">
+        </div>
+      </div>
+
+      <h3 style="font-size:14px;margin:18px 0 10px;">Barang di Faktur</h3>
+      <div class="form-row">
+        <div class="field" style="flex:2;">
+          <label>Pilih Barang</label>
+          <select id="ei-select-barang"></select>
+        </div>
+        <div class="field">
+          <label>Qty</label>
+          <input type="number" id="ei-item-qty" value="1" min="1">
+        </div>
+        <div class="field">
+          <label>Harga Satuan</label>
+          <input type="text" inputmode="numeric" id="ei-item-harga" placeholder="Rp 0">
+        </div>
+      </div>
+      <button class="btn btn-dark btn-sm" id="btn-ei-add-item">+ Tambah / Ubah Barang</button>
+
+      <table style="margin-top:14px;">
+        <thead><tr><th>Kode</th><th>Nama Barang</th><th class="center">Qty</th><th class="right">Harga</th><th class="right">Subtotal</th><th></th></tr></thead>
+        <tbody id="ei-cart-table"></tbody>
+      </table>
+      <div class="cart-total-row">
+        <span class="lbl">Total Faktur</span>
+        <span class="amt" id="ei-cart-total">Rp 0</span>
+      </div>
+      <p style="margin:8px 0 0;color:var(--ink-soft);font-size:12px;">Stok barang otomatis disesuaikan (barang lama dikembalikan, lalu dikurangi lagi sesuai isi terbaru). Status pembayaran (Lunas/Cicil/Belum) TIDAK berubah lewat form ini — gunakan tombol Lunas di tabel Faktur &amp; Tagihan untuk itu.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="edit-invoice-cancel">Batal</button>
+      <button class="btn btn-primary" id="edit-invoice-save">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PASSWORD -->
 <div class="overlay" id="password-overlay">
   <div class="modal" style="max-width:380px;">
@@ -1086,6 +1155,27 @@ let cart = [];
 let lastSavedInvoice = null;
 let editingKode = null;
 
+/* ============ SALDO KAS (LEDGER BERJALAN) ============
+   Saldo kas TIDAK dihitung ulang dari total agregat setiap render (itu penyebab saldo
+   berubah-ubah kalau ada data lama yang dihapus/diedit/diinput ulang). Sebagai gantinya,
+   saldo disimpan sebagai satu angka berjalan (kasProfile.saldoBerjalan) yang HANYA berubah
+   lewat kejadian kas nyata: tandai lunas, cicilan, batal lunas, hapus faktur/pembelian yang
+   sudah dibayar, tambah/hapus pengeluaran, dan suntikan/pengembalian dana — semua lewat
+   adjustSaldoKas(). Menghapus atau mengedit transaksi yang statusnya masih "Belum" (belum
+   pernah dihitung sebagai kas masuk/keluar) tidak akan menyentuh saldo sama sekali. */
+async function adjustSaldoKas(delta){
+  if(!delta) return;
+  kasProfile.saldoBerjalan = (kasProfile.saldoBerjalan||0) + delta;
+  await saveKey('kasProfile', kasProfile);
+}
+// Uang tunai yang sudah benar-benar diterima dari sebuah faktur: kalau statusnya Lunas dianggap
+// total penuh (menutup faktur lama sebelum fitur cicilan ada), kalau belum lunas dihitung dari
+// jumlah cicilan yang sudah tercatat saja.
+function cashDiterimaInvoice(inv){
+  if(inv.status==='lunas') return inv.total;
+  return totalDibayarInvoice(inv);
+}
+
 /* ============ STORAGE HELPERS (Firestore, real-time, shared semua device) ============ */
 // Semua data disimpan dalam SATU dokumen Firestore: sistem-penjualan/data
 // Setiap device yang buka app ini otomatis "berlangganan" (onSnapshot) ke dokumen itu.
@@ -1137,9 +1227,8 @@ async function reloadStateFromCache(){
   document.getElementById('cp-hp').value = companyProfile.hp||'';
   document.getElementById('cp-ig').value = companyProfile.ig||'';
   document.getElementById('cp-rek').value = companyProfile.rek||'';
-  document.getElementById('kf-suntik').value = kasProfile.suntikanBaru||0;
-  document.getElementById('kf-balik').value = kasProfile.pengembalianBaru||0;
   applyModalPertamaUI();
+  renderRiwayatDana();
 }
 
 async function loadKey(key, fallback){
@@ -1305,6 +1394,22 @@ async function init(){
     await saveKey('stores', stores);
   }
 
+  // Migrasi satu kali: dulu Saldo Kas dihitung ulang dari total agregat (rentan berubah kalau data
+  // lama diedit/dihapus/diinput ulang). Sekarang saldo jadi angka berjalan tunggal. Hitung SEKALI di
+  // sini pakai rumus lama sebagai titik awal (supaya saldo tidak melompat dari yang sudah cocok
+  // dengan rekening), lalu SETERUSNYA hanya berubah lewat adjustSaldoKas() saat ada kejadian kas nyata.
+  if(kasProfile.saldoBerjalan===undefined){
+    const omsetInit = invoices.filter(i=>i.status==='lunas').reduce((s,i)=>s+i.total,0);
+    const pembelianLunasInit = purchases.filter(p=>p.status==='lunas').reduce((s,p)=>s+p.total,0);
+    const pengeluaranInit = expenses.reduce((s,e)=>s+e.jumlah,0);
+    const deltaMasukInit = omsetInit - (kasProfile.snapshotMasuk||0);
+    const deltaPembelianInit = pembelianLunasInit - (kasProfile.snapshotPembelian||0);
+    const deltaPengeluaranInit = pengeluaranInit - (kasProfile.snapshotPengeluaran||0);
+    kasProfile.saldoBerjalan = (kasProfile.saldoTerkunci||0) + (kasProfile.suntikanBaru||0) - (kasProfile.pengembalianBaru||0)
+      + deltaMasukInit - deltaPembelianInit - deltaPengeluaranInit;
+    await saveKey('kasProfile', kasProfile);
+  }
+
   document.getElementById('f-tanggal').value = todayISO();
   document.getElementById('p-tanggal').value = todayISO();
   document.getElementById('pb-tanggal').value = todayISO();
@@ -1312,9 +1417,8 @@ async function init(){
   document.getElementById('cp-hp').value = companyProfile.hp||'';
   document.getElementById('cp-ig').value = companyProfile.ig||'';
   document.getElementById('cp-rek').value = companyProfile.rek||'';
-  document.getElementById('kf-suntik').value = kasProfile.suntikanBaru||0;
-  document.getElementById('kf-balik').value = kasProfile.pengembalianBaru||0;
   applyModalPertamaUI();
+  renderRiwayatDana();
 
   renderAll();
 }
@@ -1394,7 +1498,7 @@ init();
 function renderDashboard(){
   const totalPenjualan = invoices.reduce((s,i)=>s+i.total,0);
   const omset = invoices.filter(i=>i.status==='lunas').reduce((s,i)=>s+i.total,0);
-  const piutang = invoices.filter(i=>i.status==='belum').reduce((s,i)=>s+i.total,0);
+  const piutang = invoices.reduce((s,i)=>s+sisaTagihanInvoice(i),0);
   const hutang = purchases.filter(p=>p.status==='belum').reduce((s,p)=>s+p.total,0);
   const totalPengeluaran = expenses.reduce((s,e)=>s+e.jumlah,0);
   const modalBarang = products.reduce((s,p)=>s+(p.stok*p.hargaModal),0);
@@ -1411,15 +1515,12 @@ function renderDashboard(){
   labaValueCache = laba;
   document.getElementById('d-laba').textContent = labaRevealed ? rupiah(laba) : '********';
 
-  // Saldo Kas Seharusnya = saldo yang sudah dikunci + suntikan/pengembalian baru
-  // + transaksi baru (faktur/pembelian/pengeluaran) yang terjadi SETELAH titik kunci.
-  const kasMasuk = omset; // faktur lunas
-  const kasKeluarPembelian = purchases.filter(p=>p.status==='lunas').reduce((s,p)=>s+p.total,0);
-  const deltaMasuk = kasMasuk - (kasProfile.snapshotMasuk||0);
-  const deltaPembelian = kasKeluarPembelian - (kasProfile.snapshotPembelian||0);
-  const deltaPengeluaran = totalPengeluaran - (kasProfile.snapshotPengeluaran||0);
-  const saldoKas = (kasProfile.saldoTerkunci||0) + (kasProfile.suntikanBaru||0) - (kasProfile.pengembalianBaru||0)
-    + deltaMasuk - deltaPembelian - deltaPengeluaran;
+  // Saldo Kas Seharusnya Ada di Rekening = saldo berjalan (ledger) yang disimpan di kasProfile.saldoBerjalan.
+  // Nilainya HANYA berubah lewat kejadian kas nyata (tandai lunas, cicilan, batal lunas, hapus faktur/pembelian
+  // yang sudah dibayar, pengeluaran, suntikan/pengembalian dana) lewat fungsi adjustSaldoKas() — BUKAN dihitung
+  // ulang dari total agregat setiap render. Ini supaya edit/hapus/tambah data lama tidak ikut mengubah saldo
+  // secara tidak sengaja; hanya transaksi kas yang benar-benar terjadi yang menggerakkan saldo.
+  const saldoKas = kasProfile.saldoBerjalan||0;
 
   document.getElementById('d-saldo-kas').textContent = rupiah(saldoKas);
   document.getElementById('d-modal-pertama').textContent = modalPertamaRevealed ? rupiah(kasProfile.modalPertama||0) : '********';
@@ -1520,12 +1621,37 @@ document.getElementById('modal-pertama-card').addEventListener('dblclick', async
 });
 
 document.getElementById('btn-save-kas').addEventListener('click', async ()=>{
-  kasProfile.suntikanBaru = Number(document.getElementById('kf-suntik').value) || 0;
-  kasProfile.pengembalianBaru = Number(document.getElementById('kf-balik').value) || 0;
-  await saveKey('kasProfile', kasProfile);
+  const suntik = Number(document.getElementById('kf-suntik').value) || 0;
+  const balik = Number(document.getElementById('kf-balik').value) || 0;
+  if(suntik<=0 && balik<=0){ showToast('Isi jumlah suntikan atau pengembalian dana.', true); return; }
+
+  kasProfile.riwayatDana = kasProfile.riwayatDana || [];
+  const ts = Date.now();
+  if(suntik>0) kasProfile.riwayatDana.push({tipe:'suntikan', jumlah:suntik, tanggal:todayISO(), ts});
+  if(balik>0) kasProfile.riwayatDana.push({tipe:'pengembalian', jumlah:balik, tanggal:todayISO(), ts:ts+1});
+
+  await adjustSaldoKas(suntik - balik);
+  document.getElementById('kf-suntik').value = '';
+  document.getElementById('kf-balik').value = '';
   renderDashboard();
-  showToast('Suntikan/pengembalian tersimpan. Saldo kas dihitung ulang.');
+  renderRiwayatDana();
+  showToast('Saldo kas diperbarui.');
 });
+
+function renderRiwayatDana(){
+  const wrap = document.getElementById('riwayat-dana-wrap');
+  if(!wrap) return;
+  const list = [...(kasProfile.riwayatDana||[])].sort((a,b)=>b.ts-a.ts).slice(0,10);
+  if(list.length===0){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <div style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;">10 Riwayat Terbaru</div>
+    <table style="font-size:13px;">
+      <thead><tr><th style="text-align:left;">Tanggal</th><th style="text-align:left;">Tipe</th><th class="right">Jumlah</th></tr></thead>
+      <tbody>
+        ${list.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${r.tipe==='suntikan'?'Suntikan Masuk':'Pengembalian Keluar'}</td><td class="right num">${r.tipe==='suntikan'?'+':'-'}${rupiah(r.jumlah)}</td></tr>`).join('')}
+      </tbody>
+    </table>`;
+}
 
 // Modal Pertama: sekali dikunci, tidak bisa diubah lagi (input & tombol dinonaktifkan permanen).
 function applyModalPertamaUI(){
@@ -1637,9 +1763,8 @@ document.getElementById('btn-backup-restore').addEventListener('click', async ()
   document.getElementById('cp-hp').value = companyProfile.hp||'';
   document.getElementById('cp-ig').value = companyProfile.ig||'';
   document.getElementById('cp-rek').value = companyProfile.rek||'';
-  document.getElementById('kf-suntik').value = kasProfile.suntikanBaru||0;
-  document.getElementById('kf-balik').value = kasProfile.pengembalianBaru||0;
   applyModalPertamaUI();
+  renderRiwayatDana();
 
   renderDashboard();
   renderStokTable();
@@ -2256,6 +2381,7 @@ document.getElementById('lunas-pilih-lunas').addEventListener('click', async ()=
   inv.status = 'lunas';
   inv.lunasAt = Date.now();
   await saveKey('invoices', invoices);
+  await adjustSaldoKas(sisa); // kas masuk sebesar sisa yang baru dilunasi
   closeLunasModal();
   renderTagihanTable();
   renderDashboard();
@@ -2279,6 +2405,7 @@ document.getElementById('lunas-cicil-simpan').addEventListener('click', async ()
     inv.lunasAt = Date.now();
   }
   await saveKey('invoices', invoices);
+  await adjustSaldoKas(jumlah); // kas masuk sebesar cicilan yang baru dibayar
   closeLunasModal();
   renderTagihanTable();
   renderDashboard();
@@ -2360,6 +2487,7 @@ function renderTagihanTable(){
       <td class="center"><span class="badge ${badge.cls}">${badge.text}</span></td>
       <td class="right">
         <button class="btn btn-ghost btn-sm" data-view="${inv.id}">Lihat</button>
+        <button class="btn btn-ghost btn-sm" data-editinv="${inv.id}">Edit</button>
         ${inv.status==='belum' ? `<button class="btn btn-success btn-sm" data-lunas="${inv.id}">Lunas</button>` : `<button class="btn btn-ghost btn-sm" data-batal="${inv.id}">Batal Lunas</button>`}
         <button class="btn btn-danger btn-sm" data-delinv="${inv.id}">Hapus</button>
       </td>
@@ -2457,6 +2585,7 @@ document.getElementById('btn-export-tagihan').addEventListener('click', exportTa
 
 document.getElementById('tagihan-table').addEventListener('click', async e=>{
   const viewBtn = e.target.closest('[data-view]');
+  const editBtn = e.target.closest('[data-editinv]');
   const lunasBtn = e.target.closest('[data-lunas]');
   const batalBtn = e.target.closest('[data-batal]');
   const delBtn = e.target.closest('[data-delinv]');
@@ -2473,6 +2602,10 @@ document.getElementById('tagihan-table').addEventListener('click', async e=>{
     const inv = invoices.find(i=>i.id===viewBtn.dataset.view);
     if(inv) openInvoice(inv);
   }
+  if(editBtn){
+    const inv = invoices.find(i=>i.id===editBtn.dataset.editinv);
+    if(inv) openEditInvoice(inv.id);
+  }
   if(lunasBtn){
     const inv = invoices.find(i=>i.id===lunasBtn.dataset.lunas);
     if(inv) openLunasModal(inv);
@@ -2482,10 +2615,12 @@ document.getElementById('tagihan-table').addEventListener('click', async e=>{
     if(inv){
       const ok = await askPassword('Masukkan password untuk membatalkan status Lunas faktur '+inv.nomor+'.');
       if(!ok) return;
+      const kasDireset = cashDiterimaInvoice(inv);
       inv.status = 'belum';
       inv.lunasAt = null;
       inv.payments = [];
       await saveKey('invoices', invoices);
+      await adjustSaldoKas(-kasDireset); // kas yang tadinya sudah dihitung diterima, ditarik kembali
       renderTagihanTable();
       renderDashboard();
       showToast(inv.nomor+' dibatalkan, kembali Belum Lunas (cicilan direset).');
@@ -2496,6 +2631,7 @@ document.getElementById('tagihan-table').addEventListener('click', async e=>{
     if(inv){
       const ok = await askPassword('Masukkan password untuk menghapus faktur '+inv.nomor+'. Stok akan dikembalikan.');
       if(!ok) return;
+      const kasDireset = cashDiterimaInvoice(inv);
       inv.items.forEach(it=>{
         const p = products.find(x=>x.kode===it.kode);
         if(p) p.stok += it.qty;
@@ -2503,6 +2639,7 @@ document.getElementById('tagihan-table').addEventListener('click', async e=>{
       invoices = invoices.filter(i=>i.id!==inv.id);
       await saveKey('invoices', invoices);
       await saveKey('products', products);
+      await adjustSaldoKas(-kasDireset); // uang yang sudah tercatat masuk dari faktur ini ditarik lagi dari saldo
       renderTagihanTable();
       renderStokTable();
       populateBarangSelect();
@@ -2511,6 +2648,168 @@ document.getElementById('tagihan-table').addEventListener('click', async e=>{
       showToast('Faktur dihapus, stok dikembalikan.');
     }
   }
+});
+
+/* ============ EDIT FAKTUR ============ */
+let editingInvoiceId = null;
+let editCart = [];
+let editVirtualStock = {}; // stok "seolah-olah" barang lama di faktur ini sudah dikembalikan dulu
+
+function populateEditBarangSelect(){
+  const sel = document.getElementById('ei-select-barang');
+  const sorted = [...products].sort((a,b)=>a.kode.localeCompare(b.kode));
+  sel.innerHTML = sorted.length
+    ? sorted.map(p=>{
+        const stokTampil = editVirtualStock[p.kode]!=null ? editVirtualStock[p.kode] : p.stok;
+        return `<option value="${escapeHtml(p.kode)}">${escapeHtml(p.kode)} — ${escapeHtml(p.nama)} (stok:${stokTampil})</option>`;
+      }).join('')
+    : `<option value="">Belum ada barang di stok</option>`;
+}
+
+function openEditInvoice(id){
+  const inv = invoices.find(x=>x.id===id);
+  if(!inv) return;
+  editingInvoiceId = id;
+  editCart = inv.items.map(it=>({kode:it.kode, nama:it.nama, qty:it.qty, harga:it.harga, hargaModal:it.hargaModal}));
+
+  // Stok "virtual": stok sekarang + qty barang yang masih tercatat di faktur ini (karena akan
+  // dikembalikan dulu sebelum item hasil edit dikurangkan lagi).
+  editVirtualStock = {};
+  products.forEach(p=>{ editVirtualStock[p.kode] = p.stok; });
+  inv.items.forEach(it=>{ editVirtualStock[it.kode] = (editVirtualStock[it.kode]||0) + it.qty; });
+
+  document.getElementById('ei-customer').value = inv.customer||'';
+  document.getElementById('ei-tanggal').value = inv.tanggal||todayISO();
+  document.getElementById('ei-top').value = inv.top||0;
+  document.getElementById('ei-alamat').value = inv.customerAddress||'';
+  document.getElementById('ei-telp').value = inv.customerPhone||'';
+
+  const badge = statusBadgeInvoice(inv);
+  document.getElementById('ei-status-hint').textContent =
+    'Faktur '+inv.nomor+' — status saat ini: '+badge.text+'. Mengedit isi/nominal faktur ini tidak mengubah status pembayarannya.';
+
+  populateEditBarangSelect();
+  document.getElementById('ei-item-qty').value = 1;
+  document.getElementById('ei-item-harga').value = '';
+  renderEditCart();
+  document.getElementById('edit-invoice-overlay').classList.add('open');
+}
+function closeEditInvoice(){
+  editingInvoiceId = null;
+  editCart = [];
+  editVirtualStock = {};
+  document.getElementById('edit-invoice-overlay').classList.remove('open');
+}
+document.getElementById('edit-invoice-close').addEventListener('click', closeEditInvoice);
+document.getElementById('edit-invoice-cancel').addEventListener('click', closeEditInvoice);
+document.getElementById('ei-item-harga').addEventListener('input', e=>{
+  e.target.value = formatRupiahLive(e.target.value);
+});
+
+document.getElementById('btn-ei-add-item').addEventListener('click', ()=>{
+  const kode = document.getElementById('ei-select-barang').value;
+  const qty = Number(document.getElementById('ei-item-qty').value)||0;
+  const harga = parseRupiahLive(document.getElementById('ei-item-harga').value);
+  const p = products.find(x=>x.kode===kode);
+  if(!p){ showToast('Pilih barang terlebih dahulu.', true); return; }
+  if(qty<=0){ showToast('Qty harus lebih dari 0.', true); return; }
+  if(harga<=0){ showToast('Isi harga jual untuk barang ini terlebih dahulu.', true); return; }
+
+  const batasStok = editVirtualStock[kode]!=null ? editVirtualStock[kode] : p.stok;
+  const existing = editCart.find(c=>c.kode===kode);
+  const qtyLainDiCart = editCart.filter(c=>c.kode===kode).reduce((s,c)=>s+c.qty,0) - (existing?existing.qty:0);
+  if(qtyLainDiCart + qty > batasStok){ showToast('Stok tidak cukup. Sisa stok tersedia: '+batasStok, true); return; }
+
+  if(existing){ existing.qty = qty; existing.harga = harga; }
+  else{ editCart.push({kode:p.kode, nama:p.nama, qty, harga, hargaModal:p.hargaModal}); }
+
+  document.getElementById('ei-item-qty').value = 1;
+  document.getElementById('ei-item-harga').value = '';
+  renderEditCart();
+});
+
+function renderEditCart(){
+  const tbody = document.getElementById('ei-cart-table');
+  tbody.innerHTML = editCart.length ? editCart.map((c,idx)=>`
+    <tr>
+      <td class="kode">${escapeHtml(c.kode)}</td>
+      <td>${escapeHtml(c.nama)}</td>
+      <td class="center">${c.qty}</td>
+      <td class="right num">${rupiah(c.harga)}</td>
+      <td class="right num">${rupiah(c.harga*c.qty)}</td>
+      <td class="right"><button class="btn btn-danger btn-sm" data-ei-remove="${idx}">Hapus</button></td>
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Belum ada barang.</td></tr>`;
+  const total = editCart.reduce((s,c)=>s+c.harga*c.qty,0);
+  document.getElementById('ei-cart-total').textContent = rupiah(total);
+}
+document.getElementById('ei-cart-table').addEventListener('click', e=>{
+  const rm = e.target.closest('[data-ei-remove]');
+  if(rm){ editCart.splice(Number(rm.dataset.eiRemove),1); renderEditCart(); }
+});
+
+document.getElementById('edit-invoice-save').addEventListener('click', async ()=>{
+  const inv = invoices.find(x=>x.id===editingInvoiceId);
+  if(!inv) return;
+  if(editCart.length===0){ showToast('Faktur harus punya minimal satu barang.', true); return; }
+
+  const customer = document.getElementById('ei-customer').value.trim();
+  const tanggal = document.getElementById('ei-tanggal').value || inv.tanggal;
+  const top = Number(document.getElementById('ei-top').value)||0;
+  const alamat = document.getElementById('ei-alamat').value.trim();
+  const telp = document.getElementById('ei-telp').value.trim();
+
+  // Cek stok final: stok sekarang + barang lama faktur ini (dikembalikan dulu) harus cukup untuk isi baru.
+  const stokSetelahDikembalikan = {};
+  products.forEach(p=>{ stokSetelahDikembalikan[p.kode] = p.stok; });
+  inv.items.forEach(it=>{ stokSetelahDikembalikan[it.kode] = (stokSetelahDikembalikan[it.kode]||0) + it.qty; });
+  for(const c of editCart){
+    const tersedia = stokSetelahDikembalikan[c.kode]||0;
+    const perluDiKode = editCart.filter(x=>x.kode===c.kode).reduce((s,x)=>s+x.qty,0);
+    if(perluDiKode > tersedia){ showToast('Stok '+c.kode+' tidak cukup untuk perubahan ini.', true); return; }
+  }
+
+  const ok = await askPassword('Masukkan password untuk menyimpan perubahan faktur '+inv.nomor+'.');
+  if(!ok) return;
+
+  // Kembalikan stok barang lama, lalu kurangi lagi sesuai isi baru.
+  inv.items.forEach(it=>{
+    const p = products.find(x=>x.kode===it.kode);
+    if(p) p.stok += it.qty;
+  });
+  editCart.forEach(c=>{
+    const p = products.find(x=>x.kode===c.kode);
+    if(p) p.stok -= c.qty;
+  });
+
+  const oldTotal = inv.total;
+  const newTotal = editCart.reduce((s,c)=>s+c.harga*c.qty,0);
+
+  inv.customer = customer;
+  inv.customerAddress = alamat;
+  inv.customerPhone = telp;
+  inv.tanggal = tanggal;
+  inv.top = top;
+  inv.items = editCart.map(c=>({...c, subtotal:c.harga*c.qty}));
+  inv.total = newTotal;
+
+  // Kalau faktur ini statusnya sudah Lunas, kas yang dianggap diterima harus disesuaikan
+  // mengikuti total barunya (selisih total lama vs baru). Kalau masih Belum/Cicil, jumlah
+  // yang SUDAH dibayar (inv.payments) tidak diubah — cuma sisa tagihannya yang ikut bergeser.
+  let deltaKas = 0;
+  if(inv.status==='lunas') deltaKas = newTotal - oldTotal;
+
+  await saveKey('invoices', invoices);
+  await saveKey('products', products);
+  if(deltaKas) await adjustSaldoKas(deltaKas);
+
+  closeEditInvoice();
+  renderStokTable();
+  populateBarangSelect();
+  populatePembelianDatalist();
+  renderTagihanTable();
+  renderDashboard();
+  if(document.getElementById('view-tren')?.classList.contains('active')) renderTrenPembayaran();
+  showToast('Faktur '+inv.nomor+' diperbarui.');
 });
 
 /* ============ INVOICE PREVIEW / PRINT (mengikuti template) ============ */
@@ -3157,6 +3456,7 @@ document.getElementById('pembelian-table').addEventListener('click', async e=>{
       p.status = 'lunas';
       p.lunasAt = Date.now();
       await saveKey('purchases', purchases);
+      await adjustSaldoKas(-p.total); // kas keluar untuk bayar supplier
       renderPembelianTable();
       renderDashboard();
       showToast(p.nomor+' ditandai Lunas.');
@@ -3168,9 +3468,11 @@ document.getElementById('pembelian-table').addEventListener('click', async e=>{
     if(p){
       const prod = products.find(x=>x.kode===p.kode);
       if(prod) prod.stok = Math.max(0, prod.stok - p.qty);
+      const kasDireset = p.status==='lunas' ? p.total : 0;
       purchases = purchases.filter(x=>x.id!==p.id);
       await saveKey('purchases', purchases);
       await saveKey('products', products);
+      if(kasDireset) await adjustSaldoKas(kasDireset); // kas yang tadinya sudah dianggap keluar, dikembalikan
       renderPembelianTable();
       renderStokTable();
       populateBarangSelect();
@@ -3239,6 +3541,7 @@ document.getElementById('edit-pembelian-save').addEventListener('click', async (
   }
 
   const statusBerubah = p.status !== status;
+  const kasLamaKeluar = p.status==='lunas' ? p.total : 0; // kas yang sebelumnya sudah dihitung keluar dari transaksi ini
   p.tanggal = tanggal;
   p.supplier = supplier;
   p.kode = newProd.kode;
@@ -3248,9 +3551,11 @@ document.getElementById('edit-pembelian-save').addEventListener('click', async (
   p.total = qty*harga;
   p.status = status;
   if(statusBerubah) p.lunasAt = status==='lunas' ? Date.now() : null;
+  const kasBaruKeluar = p.status==='lunas' ? p.total : 0; // kas yang seharusnya keluar setelah diedit
 
   await saveKey('purchases', purchases);
   await saveKey('products', products);
+  await adjustSaldoKas(kasLamaKeluar - kasBaruKeluar); // selisihnya ditambahkan/dikurangkan dari saldo
 
   closeEditPembelian();
   renderStokTable();
@@ -3270,6 +3575,7 @@ document.getElementById('btn-add-pengeluaran').addEventListener('click', async (
 
   expenses.push({id:uid(), tanggal, keterangan, jumlah, createdAt:Date.now()});
   await saveKey('expenses', expenses);
+  await adjustSaldoKas(-jumlah); // kas keluar untuk pengeluaran ini
   document.getElementById('p-keterangan').value='';
   document.getElementById('p-jumlah').value='';
   document.getElementById('p-tanggal').value = todayISO();
@@ -3294,8 +3600,10 @@ document.getElementById('pengeluaran-table').addEventListener('click', async e=>
   const del = e.target.closest('[data-delexp]');
   if(del){
     if(!confirm('Hapus catatan pengeluaran ini?')) return;
+    const x = expenses.find(x=>x.id===del.dataset.delexp);
     expenses = expenses.filter(x=>x.id!==del.dataset.delexp);
     await saveKey('expenses', expenses);
+    if(x) await adjustSaldoKas(x.jumlah); // kas yang tadinya dihitung keluar, dikembalikan
     renderPengeluaranTable();
     renderDashboard();
     showToast('Pengeluaran dihapus.');
