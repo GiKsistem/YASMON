@@ -367,6 +367,9 @@
           <div class="field"><label>Suntikan Dana Baru (Rp)</label><input type="number" id="kf-suntik" placeholder="0"></div>
           <div class="field"><label>Pengembalian Baru (Rp)</label><input type="number" id="kf-balik" placeholder="0"></div>
         </div>
+        <div class="form-row" style="max-width:420px;">
+          <div class="field"><label>Keterangan</label><input type="text" id="kf-keterangan"></div>
+        </div>
         <button class="btn btn-primary" id="btn-save-kas">Simpan</button>
         <div id="riwayat-dana-wrap" style="margin-top:16px;"></div>
       </div>
@@ -1623,16 +1626,22 @@ document.getElementById('modal-pertama-card').addEventListener('dblclick', async
 document.getElementById('btn-save-kas').addEventListener('click', async ()=>{
   const suntik = Number(document.getElementById('kf-suntik').value) || 0;
   const balik = Number(document.getElementById('kf-balik').value) || 0;
+  const keterangan = document.getElementById('kf-keterangan').value.trim();
   if(suntik<=0 && balik<=0){ showToast('Isi jumlah suntikan atau pengembalian dana.', true); return; }
+
+  const ok = await askPassword('Masukkan password untuk menyimpan suntikan/pengembalian dana.');
+  if(!ok) return;
 
   kasProfile.riwayatDana = kasProfile.riwayatDana || [];
   const ts = Date.now();
-  if(suntik>0) kasProfile.riwayatDana.push({tipe:'suntikan', jumlah:suntik, tanggal:todayISO(), ts});
-  if(balik>0) kasProfile.riwayatDana.push({tipe:'pengembalian', jumlah:balik, tanggal:todayISO(), ts:ts+1});
+  if(suntik>0) kasProfile.riwayatDana.push({id:uid(), tipe:'suntikan', jumlah:suntik, keterangan, tanggal:todayISO(), ts});
+  if(balik>0) kasProfile.riwayatDana.push({id:uid(), tipe:'pengembalian', jumlah:balik, keterangan, tanggal:todayISO(), ts:ts+1});
 
   await adjustSaldoKas(suntik - balik);
+  await saveKey('kasProfile', kasProfile);
   document.getElementById('kf-suntik').value = '';
   document.getElementById('kf-balik').value = '';
+  document.getElementById('kf-keterangan').value = '';
   renderDashboard();
   renderRiwayatDana();
   showToast('Saldo kas diperbarui.');
@@ -1646,12 +1655,32 @@ function renderRiwayatDana(){
   wrap.innerHTML = `
     <div style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;">10 Riwayat Terbaru</div>
     <table style="font-size:13px;">
-      <thead><tr><th style="text-align:left;">Tanggal</th><th style="text-align:left;">Tipe</th><th class="right">Jumlah</th></tr></thead>
+      <thead><tr><th style="text-align:left;">Tanggal</th><th style="text-align:left;">Tipe</th><th style="text-align:left;">Keterangan</th><th class="right">Jumlah</th><th class="right">Aksi</th></tr></thead>
       <tbody>
-        ${list.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${r.tipe==='suntikan'?'Suntikan Masuk':'Pengembalian Keluar'}</td><td class="right num">${r.tipe==='suntikan'?'+':'-'}${rupiah(r.jumlah)}</td></tr>`).join('')}
+        ${list.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${r.tipe==='suntikan'?'Suntikan Masuk':'Pengembalian Keluar'}</td><td>${r.keterangan?escapeHtml(r.keterangan):'-'}</td><td class="right num">${r.tipe==='suntikan'?'+':'-'}${rupiah(r.jumlah)}</td><td class="right"><button class="btn btn-danger btn-sm" data-delriwayat="${r.ts}">Hapus</button></td></tr>`).join('')}
       </tbody>
     </table>`;
 }
+
+document.getElementById('riwayat-dana-wrap').addEventListener('click', async e=>{
+  const del = e.target.closest('[data-delriwayat]');
+  if(!del) return;
+  const ts = Number(del.dataset.delriwayat);
+  const r = (kasProfile.riwayatDana||[]).find(x=>x.ts===ts);
+  if(!r) return;
+
+  const ok = await askPassword('Masukkan password untuk menghapus riwayat '+(r.tipe==='suntikan'?'Suntikan Masuk':'Pengembalian Keluar')+' ini.');
+  if(!ok) return;
+  if(!confirm('Hapus riwayat dana ini? Saldo Kas akan disesuaikan kembali.')) return;
+
+  kasProfile.riwayatDana = (kasProfile.riwayatDana||[]).filter(x=>x.ts!==ts);
+  // Balikkan efeknya ke Saldo Kas: suntikan yang dihapus mengurangi saldo, pengembalian yang dihapus menambah saldo.
+  await adjustSaldoKas(r.tipe==='suntikan' ? -r.jumlah : r.jumlah);
+  await saveKey('kasProfile', kasProfile);
+  renderDashboard();
+  renderRiwayatDana();
+  showToast('Riwayat dana dihapus, Saldo Kas disesuaikan.');
+});
 
 // Modal Pertama: sekali dikunci, tidak bisa diubah lagi (input & tombol dinonaktifkan permanen).
 function applyModalPertamaUI(){
