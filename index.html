@@ -295,6 +295,7 @@
       <button data-view="margin"><span class="nav-num">07</span>Margin per Toko</button>
       <button data-view="pembelian"><span class="nav-num">08</span>Pembelian Supplier</button>
       <button data-view="pengeluaran"><span class="nav-num">09</span>Pengeluaran</button>
+      <button data-view="rekomendasi"><span class="nav-num">10</span>Rekomendasi Harga</button>
     </nav>
     <div class="sidebar-foot">DATA TERSIMPAN OTOMATIS</div>
   </aside>
@@ -904,6 +905,56 @@
       </div>
     </section>
 
+    <!-- REKOMENDASI HARGA -->
+    <section class="view" id="view-rekomendasi">
+      <div class="page-head">
+        <h2>Rekomendasi Harga</h2>
+        <p>Semua SKU yang ada di Stok Barang otomatis muncul di sini. Isi harga rekomendasi jual per tier untuk masing-masing barang sebagai acuan.</p>
+      </div>
+
+      <div class="panel" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 12px;color:var(--accent-dark);">Tier 1 (Retail)</h3>
+        <div class="table-toolbar">
+          <h3 style="margin:0;">Daftar Rekomendasi Harga</h3>
+          <div class="search-box"><input type="text" class="rekomendasi-search" data-tier="1" placeholder="Cari kode / nama barang..."></div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Kode</th><th>Nama Barang</th><th class="right">Harga Modal</th><th class="right">Harga Ongkir</th><th class="right">Rekomendasi Harga Jual</th><th class="right">Margin</th><th class="right">Aksi</th>
+          </tr></thead>
+          <tbody class="rekomendasi-table" data-tier="1"></tbody>
+        </table>
+      </div>
+
+      <div class="panel" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 12px;color:var(--accent-dark);">Tier 2 (Semi Grosir)</h3>
+        <div class="table-toolbar">
+          <h3 style="margin:0;">Daftar Rekomendasi Harga</h3>
+          <div class="search-box"><input type="text" class="rekomendasi-search" data-tier="2" placeholder="Cari kode / nama barang..."></div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Kode</th><th>Nama Barang</th><th class="right">Harga Modal</th><th class="right">Harga Ongkir</th><th class="right">Rekomendasi Harga Jual</th><th class="right">Margin</th><th class="right">Aksi</th>
+          </tr></thead>
+          <tbody class="rekomendasi-table" data-tier="2"></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin:0 0 12px;color:var(--accent-dark);">Tier 3 (Grosir)</h3>
+        <div class="table-toolbar">
+          <h3 style="margin:0;">Daftar Rekomendasi Harga</h3>
+          <div class="search-box"><input type="text" class="rekomendasi-search" data-tier="3" placeholder="Cari kode / nama barang..."></div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Kode</th><th>Nama Barang</th><th class="right">Harga Modal</th><th class="right">Harga Ongkir</th><th class="right">Rekomendasi Harga Jual</th><th class="right">Margin</th><th class="right">Aksi</th>
+          </tr></thead>
+          <tbody class="rekomendasi-table" data-tier="3"></tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -1372,6 +1423,7 @@ document.getElementById('nav').addEventListener('click', async e=>{
   if(view === 'tren') renderTrenPembayaran();
   if(view === 'margin') renderMarginTable();
   if(view === 'pembelian') populatePembelianDatalist();
+  if(view === 'rekomendasi') renderSemuaRekomendasiTable();
 });
 
 /* ============ INIT ============ */
@@ -1968,6 +2020,117 @@ document.getElementById('stok-table').addEventListener('click', async e=>{
     renderDashboard();
     showToast('Barang dihapus.');
   }
+});
+
+/* ============ REKOMENDASI HARGA (3 TIER: 1=Retail, 2=Semi Grosir, 3=Grosir) ============ */
+const REKOM_TIERS = ['1','2','3'];
+
+function formatRupiahLive(input){
+  input.addEventListener('input', ()=>{
+    const digits = input.value.replace(/[^0-9]/g,'');
+    input.value = digits==='' ? '' : 'Rp ' + Number(digits).toLocaleString('id-ID');
+  });
+}
+function parseRupiahInput(input){
+  return Number((input.value||'').replace(/[^0-9]/g,'')) || 0;
+}
+
+// Migrasi data lama (hargaRekomendasi/hargaOngkir tunggal) ke Tier 1, sekali saja.
+function migrasiRekomendasiTier(){
+  let changed = false;
+  products.forEach(p=>{
+    if((p.hargaRekomendasi!==undefined && p.hargaRekomendasi!=='') && (p.hargaRekomendasiTier1===undefined || p.hargaRekomendasiTier1==='')){
+      p.hargaRekomendasiTier1 = p.hargaRekomendasi;
+      changed = true;
+    }
+    if((p.hargaOngkir!==undefined && p.hargaOngkir!=='') && (p.hargaOngkirTier1===undefined || p.hargaOngkirTier1==='')){
+      p.hargaOngkirTier1 = p.hargaOngkir;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+function renderRekomendasiTable(tier){
+  const searchEl = document.querySelector(`.rekomendasi-search[data-tier="${tier}"]`);
+  const q = (searchEl?.value||'').toLowerCase();
+  const list = [...products].sort((a,b)=>a.kode.localeCompare(b.kode))
+    .filter(p=>p.kode.toLowerCase().includes(q)||p.nama.toLowerCase().includes(q));
+  const tbody = document.querySelector(`.rekomendasi-table[data-tier="${tier}"]`);
+  if(!tbody) return;
+  const fmtInput = v => (v==null || v==='') ? '' : 'Rp ' + Number(v).toLocaleString('id-ID');
+  const rekomKey = 'hargaRekomendasiTier'+tier;
+  const ongkirKey = 'hargaOngkirTier'+tier;
+  tbody.innerHTML = list.length ? list.map(p=>{
+    const rekom = (p[rekomKey]==null || p[rekomKey]==='') ? '' : p[rekomKey];
+    const ongkir = (p[ongkirKey]==null || p[ongkirKey]==='') ? '' : p[ongkirKey];
+    const margin = (rekom!=='' && !isNaN(rekom)) ? (Number(rekom) - p.hargaModal - (Number(ongkir)||0)) : null;
+    return `
+    <tr>
+      <td class="kode">${escapeHtml(p.kode)}</td>
+      <td>${escapeHtml(p.nama)}</td>
+      <td class="right num hmr-cell" data-hmr-kode="${escapeHtml(p.kode)}" title="Klik 2x untuk melihat harga modal &amp; margin" style="cursor:pointer;letter-spacing:2px;">••••••</td>
+      <td class="right"><input type="text" inputmode="numeric" class="ongkir-input" data-kode="${escapeHtml(p.kode)}" value="${fmtInput(ongkir)}" placeholder="Isi ongkir" style="width:130px;text-align:right;"></td>
+      <td class="right"><input type="text" inputmode="numeric" class="rekom-input" data-kode="${escapeHtml(p.kode)}" value="${fmtInput(rekom)}" placeholder="Isi harga jual" style="width:140px;text-align:right;"></td>
+      <td class="right num mgr-cell" data-mgr-margin="${margin!==null ? margin : ''}" title="Klik 2x untuk melihat harga modal &amp; margin" style="cursor:pointer;letter-spacing:2px;">${margin!==null ? '••••••' : '-'}</td>
+      <td class="right"><button class="btn btn-primary btn-sm" data-simpan-rekom="${escapeHtml(p.kode)}">Simpan</button></td>
+    </tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="7">Belum ada barang di Stok Barang. Tambahkan barang terlebih dahulu di menu Stok Barang.</td></tr>`;
+  tbody.querySelectorAll('.hmr-cell').forEach(c=>{ c.textContent = '••••••'; c.dataset.revealed = '0'; });
+  tbody.querySelectorAll('.rekom-input, .ongkir-input').forEach(formatRupiahLive);
+}
+
+function renderSemuaRekomendasiTable(){
+  migrasiRekomendasiTier();
+  REKOM_TIERS.forEach(renderRekomendasiTable);
+}
+
+document.querySelectorAll('.rekomendasi-search').forEach(inp=>{
+  inp.addEventListener('input', ()=>renderRekomendasiTable(inp.dataset.tier));
+});
+
+document.querySelectorAll('.rekomendasi-table').forEach(tbody=>{
+  const tier = tbody.dataset.tier;
+
+  tbody.addEventListener('dblclick', async e=>{
+    const cell = e.target.closest('.hmr-cell') || e.target.closest('.mgr-cell');
+    if(!cell) return;
+    const allCells = tbody.querySelectorAll('.hmr-cell');
+    const allMgrCells = tbody.querySelectorAll('.mgr-cell');
+    const alreadyShown = allCells[0]?.dataset.revealed === '1';
+
+    if(alreadyShown){
+      allCells.forEach(c=>{ c.textContent = '••••••'; c.dataset.revealed = '0'; });
+      allMgrCells.forEach(c=>{ if(c.dataset.mgrMargin!=='') c.textContent = '••••••'; });
+      return;
+    }
+
+    const ok = await askPassword('Masukkan password untuk melihat harga modal & margin.');
+    if(!ok) return;
+
+    allCells.forEach(c=>{
+      const p = products.find(x=>x.kode===c.dataset.hmrKode);
+      if(p){ c.textContent = rupiah(p.hargaModal); c.dataset.revealed = '1'; }
+    });
+    allMgrCells.forEach(c=>{
+      if(c.dataset.mgrMargin!=='') c.textContent = rupiah(Number(c.dataset.mgrMargin));
+    });
+  });
+
+  tbody.addEventListener('click', async e=>{
+    const btn = e.target.closest('[data-simpan-rekom]');
+    if(!btn) return;
+    const kode = btn.dataset.simpanRekom;
+    const rekomInput = tbody.querySelector(`.rekom-input[data-kode="${CSS.escape(kode)}"]`);
+    const ongkirInput = tbody.querySelector(`.ongkir-input[data-kode="${CSS.escape(kode)}"]`);
+    const p = products.find(x=>x.kode===kode);
+    if(!p || !rekomInput || !ongkirInput) return;
+    p['hargaRekomendasiTier'+tier] = rekomInput.value.trim()==='' ? '' : parseRupiahInput(rekomInput);
+    p['hargaOngkirTier'+tier] = ongkirInput.value.trim()==='' ? '' : parseRupiahInput(ongkirInput);
+    await saveKey('products', products);
+    renderRekomendasiTable(tier);
+    showToast('Rekomendasi harga Tier '+tier+' untuk '+kode+' tersimpan.');
+  });
 });
 
 /* ============ EXPORT EXCEL (CSV, kompatibel dibuka di Excel) ============ */
