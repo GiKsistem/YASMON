@@ -442,10 +442,15 @@
             <input type="number" id="in-harga-modal" placeholder="0">
           </div>
           <div class="field">
-            <label>Stok</label>
+            <label>Isi per Dus (pcs)</label>
+            <input type="number" id="in-isidus" placeholder="cth. 24" min="0">
+          </div>
+          <div class="field">
+            <label>Stok (Pcs)</label>
             <input type="number" id="in-stok" placeholder="0">
           </div>
         </div>
+        <p class="hint">Isi per Dus dipakai supaya stok bisa ditampilkan dalam satuan Dus & Pcs. Kosongkan kalau barang ini tidak dijual per dus.</p>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-primary" id="btn-save-produk">+ Simpan Barang</button>
           <button class="btn btn-ghost" id="btn-cancel-edit" style="display:none;">Batal Edit</button>
@@ -459,12 +464,12 @@
         </div>
         <table>
           <thead><tr>
-            <th>Kode</th><th>Nama Barang</th><th class="right">Harga Modal</th><th class="center">Stok</th><th class="right">Total Modal</th><th class="right">Aksi</th>
+            <th>Kode</th><th>Nama Barang</th><th class="right">Harga Modal</th><th class="center">Dus</th><th class="center">Pcs</th><th class="center">Total</th><th class="right">Total Modal</th><th class="right">Aksi</th>
           </tr></thead>
           <tbody id="stok-table"></tbody>
           <tfoot>
             <tr style="border-top:2px solid var(--ink);font-weight:700;">
-              <td colspan="4" class="right">TOTAL MODAL BARANG (STOK)</td>
+              <td colspan="6" class="right">TOTAL MODAL BARANG (STOK)</td>
               <td class="right num tm-total-cell" style="cursor:pointer;letter-spacing:2px;" title="Klik 2x pada baris harga modal untuk melihat">••••••</td>
               <td></td>
             </tr>
@@ -814,14 +819,23 @@
         </div>
         <div class="form-row">
           <div class="field">
-            <label>Qty Masuk <span style="color:#e11d48;">*</span></label>
+            <label>Isi per Dus (pcs) <span style="color:#e11d48;">*</span></label>
+            <input type="number" id="pb-isidus" placeholder="cth. 24" min="0">
+          </div>
+          <div class="field">
+            <label>Qty (Dus)</label>
+            <input type="number" id="pb-qty-dus" placeholder="cth. 5" min="0">
+          </div>
+          <div class="field">
+            <label>Qty Masuk (Pcs) <span style="color:#e11d48;">*</span></label>
             <input type="number" id="pb-qty" value="1" min="1">
           </div>
           <div class="field">
-            <label>Harga Beli / Satuan <span style="color:#e11d48;">*</span></label>
+            <label>Harga Beli / Satuan (per Pcs) <span style="color:#e11d48;">*</span></label>
             <input type="number" id="pb-harga" placeholder="0">
           </div>
         </div>
+        <p class="hint">Isi "Isi per Dus" + "Qty (Dus)" untuk hitung otomatis Qty Masuk (Pcs) — atau isi langsung Qty Masuk (Pcs) kalau barang datang eceran/tidak genap dus.</p>
         <button class="btn btn-primary" id="btn-add-pembelian">+ Simpan Pembelian</button>
       </div>
 
@@ -940,7 +954,17 @@
       </div>
       <div class="form-row">
         <div class="field">
-          <label>Qty Masuk</label>
+          <label>Isi per Dus (pcs)</label>
+          <input type="number" id="ep-isidus" min="0">
+        </div>
+        <div class="field">
+          <label>Qty (Dus)</label>
+          <input type="number" id="ep-qty-dus" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Qty Masuk (Pcs)</label>
           <input type="number" id="ep-qty" min="1">
         </div>
         <div class="field">
@@ -1650,16 +1674,18 @@ document.getElementById('btn-save-kas').addEventListener('click', async ()=>{
 function renderRiwayatDana(){
   const wrap = document.getElementById('riwayat-dana-wrap');
   if(!wrap) return;
-  const list = [...(kasProfile.riwayatDana||[])].sort((a,b)=>b.ts-a.ts).slice(0,10);
+  const list = [...(kasProfile.riwayatDana||[])].sort((a,b)=>b.ts-a.ts);
   if(list.length===0){ wrap.innerHTML = ''; return; }
   wrap.innerHTML = `
-    <div style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;">10 Riwayat Terbaru</div>
+    <div style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;">Semua Riwayat (${list.length} transaksi)</div>
+    <div style="max-height:420px;overflow-y:auto;">
     <table style="font-size:13px;">
       <thead><tr><th style="text-align:left;">Tanggal</th><th style="text-align:left;">Tipe</th><th style="text-align:left;">Keterangan</th><th class="right">Jumlah</th><th class="right">Aksi</th></tr></thead>
       <tbody>
         ${list.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${r.tipe==='suntikan'?'Suntikan Masuk':'Pengembalian Keluar'}</td><td>${r.keterangan?escapeHtml(r.keterangan):'-'}</td><td class="right num">${r.tipe==='suntikan'?'+':'-'}${rupiah(r.jumlah)}</td><td class="right"><button class="btn btn-danger btn-sm" data-delriwayat="${r.ts}">Hapus</button></td></tr>`).join('')}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
 }
 
 document.getElementById('riwayat-dana-wrap').addEventListener('click', async e=>{
@@ -1812,6 +1838,7 @@ document.getElementById('btn-save-produk').addEventListener('click', async ()=>{
   const nama = document.getElementById('in-nama').value.trim();
   const hargaModal = Number(document.getElementById('in-harga-modal').value)||0;
   const stok = Number(document.getElementById('in-stok').value)||0;
+  const isiDus = Number(document.getElementById('in-isidus').value)||0;
 
   if(!kode || !nama){ showToast('Kode dan nama barang wajib diisi.', true); return; }
 
@@ -1821,7 +1848,7 @@ document.getElementById('btn-save-produk').addEventListener('click', async ()=>{
       if(kode !== editingKode && products.some(p=>p.kode===kode)){
         showToast('Kode barang sudah digunakan.', true); return;
       }
-      products[idx] = {kode, nama, hargaModal, stok};
+      products[idx] = {kode, nama, hargaModal, stok, isiDus};
     }
     editingKode = null;
     document.getElementById('stok-form-title').textContent = 'Tambah Barang Baru';
@@ -1829,11 +1856,11 @@ document.getElementById('btn-save-produk').addEventListener('click', async ()=>{
     document.getElementById('btn-cancel-edit').style.display = 'none';
   } else {
     if(products.some(p=>p.kode===kode)){ showToast('Kode barang sudah digunakan.', true); return; }
-    products.push({kode, nama, hargaModal, stok});
+    products.push({kode, nama, hargaModal, stok, isiDus});
   }
 
   await saveKey('products', products);
-  ['in-kode','in-nama','in-harga-modal','in-stok'].forEach(id=>document.getElementById(id).value='');
+  ['in-kode','in-nama','in-harga-modal','in-stok','in-isidus'].forEach(id=>document.getElementById(id).value='');
   renderStokTable();
   populateBarangSelect();
   populatePembelianDatalist();
@@ -1843,7 +1870,7 @@ document.getElementById('btn-save-produk').addEventListener('click', async ()=>{
 
 document.getElementById('btn-cancel-edit').addEventListener('click', ()=>{
   editingKode = null;
-  ['in-kode','in-nama','in-harga-modal','in-stok'].forEach(id=>document.getElementById(id).value='');
+  ['in-kode','in-nama','in-harga-modal','in-stok','in-isidus'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('stok-form-title').textContent = 'Tambah Barang Baru';
   document.getElementById('btn-save-produk').textContent = '+ Simpan Barang';
   document.getElementById('btn-cancel-edit').style.display = 'none';
@@ -1854,18 +1881,25 @@ function renderStokTable(){
   const list = [...products].sort((a,b)=>a.kode.localeCompare(b.kode))
     .filter(p=>p.kode.toLowerCase().includes(q)||p.nama.toLowerCase().includes(q));
   const tbody = document.getElementById('stok-table');
-  tbody.innerHTML = list.length ? list.map(p=>`
+  tbody.innerHTML = list.length ? list.map(p=>{
+    const isiDus = Number(p.isiDus)||0;
+    const dusCell = isiDus>0 ? Math.floor(p.stok/isiDus) : '-';
+    const pcsCell = isiDus>0 ? (p.stok % isiDus) : p.stok;
+    return `
     <tr>
       <td class="kode">${escapeHtml(p.kode)}</td>
       <td>${escapeHtml(p.nama)}</td>
       <td class="right num hm-cell" data-hm-kode="${escapeHtml(p.kode)}" title="Klik 2x untuk melihat semua harga modal" style="cursor:pointer;letter-spacing:2px;">••••••</td>
+      <td class="center">${dusCell}</td>
+      <td class="center">${pcsCell}</td>
       <td class="center">${p.stok<=0 ? '<span class="badge badge-low">Habis</span>' : p.stok}</td>
       <td class="right num tm-cell" data-tm-kode="${escapeHtml(p.kode)}" title="Klik 2x pada Harga Modal untuk melihat" style="cursor:pointer;letter-spacing:2px;">••••••</td>
       <td class="right">
         <button class="btn btn-ghost btn-sm" data-edit="${escapeHtml(p.kode)}">Edit</button>
         <button class="btn btn-danger btn-sm" data-del="${escapeHtml(p.kode)}">Hapus</button>
       </td>
-    </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Belum ada barang. Tambahkan barang pertama Anda di atas.</td></tr>`;
+    </tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="8">Belum ada barang. Tambahkan barang pertama Anda di atas.</td></tr>`;
   // total modal keseluruhan (mengikuti rumus yang sama dengan kartu Dashboard) tetap disamarkan sampai di-reveal
   document.querySelectorAll('#stok-table .tm-cell, .tm-total-cell').forEach(c=>{ c.textContent = '••••••'; c.dataset.revealed = '0'; });
 }
@@ -1918,6 +1952,7 @@ document.getElementById('stok-table').addEventListener('click', async e=>{
     document.getElementById('in-nama').value = p.nama;
     document.getElementById('in-harga-modal').value = p.hargaModal;
     document.getElementById('in-stok').value = p.stok;
+    document.getElementById('in-isidus').value = p.isiDus || '';
     document.getElementById('stok-form-title').textContent = 'Edit Barang: '+p.kode;
     document.getElementById('btn-save-produk').textContent = 'Update Barang';
     document.getElementById('btn-cancel-edit').style.display = 'inline-flex';
@@ -3254,8 +3289,19 @@ document.getElementById('pb-kode').addEventListener('input', ()=>{
   if(p){
     document.getElementById('pb-nama').value = p.nama;
     document.getElementById('pb-harga').value = p.hargaModal;
+    if(p.isiDus) document.getElementById('pb-isidus').value = p.isiDus;
   }
 });
+
+function hitungQtyPcsDariDus(idIsiDus, idQtyDus, idQtyPcs){
+  const isiDus = Number(document.getElementById(idIsiDus).value)||0;
+  const qtyDus = Number(document.getElementById(idQtyDus).value)||0;
+  if(isiDus>0 && qtyDus>0){
+    document.getElementById(idQtyPcs).value = isiDus * qtyDus;
+  }
+}
+document.getElementById('pb-isidus').addEventListener('input', ()=>hitungQtyPcsDariDus('pb-isidus','pb-qty-dus','pb-qty'));
+document.getElementById('pb-qty-dus').addEventListener('input', ()=>hitungQtyPcsDariDus('pb-isidus','pb-qty-dus','pb-qty'));
 
 document.getElementById('btn-add-pembelian').addEventListener('click', async ()=>{
   const kode = document.getElementById('pb-kode').value.trim();
@@ -3263,9 +3309,10 @@ document.getElementById('btn-add-pembelian').addEventListener('click', async ()=
   const supplier = document.getElementById('pb-supplier').value.trim();
   const qty = Number(document.getElementById('pb-qty').value)||0;
   const harga = Number(document.getElementById('pb-harga').value)||0;
+  const isiDus = Number(document.getElementById('pb-isidus').value)||0;
 
   // Reset highlight merah dari percobaan sebelumnya
-  ['pb-supplier','pb-kode','pb-nama','pb-qty','pb-harga'].forEach(id=>{
+  ['pb-supplier','pb-kode','pb-nama','pb-qty','pb-harga','pb-isidus'].forEach(id=>{
     document.getElementById(id).style.borderColor = '';
   });
 
@@ -3279,6 +3326,7 @@ document.getElementById('btn-add-pembelian').addEventListener('click', async ()=
   if(!supplier){ tandaiKosong('pb-supplier','Isi nama supplier.'); return; }
   if(!kode){ tandaiKosong('pb-kode','Isi kode barang.'); return; }
   if(!nama){ tandaiKosong('pb-nama','Isi nama barang.'); return; }
+  if(isiDus<=0){ tandaiKosong('pb-isidus','Isi 1 dus berapa pcs (wajib diisi).'); return; }
   if(qty<=0){ tandaiKosong('pb-qty','Qty harus lebih dari 0.'); return; }
   if(harga<=0){ tandaiKosong('pb-harga','Isi harga beli.'); return; }
 
@@ -3289,9 +3337,10 @@ document.getElementById('btn-add-pembelian').addEventListener('click', async ()=
   if(p){
     p.stok += qty;
     p.hargaModal = harga;
+    p.isiDus = isiDus;
     if(nama) p.nama = nama;
   } else {
-    p = {kode, nama, hargaModal:harga, stok:qty};
+    p = {kode, nama, hargaModal:harga, stok:qty, isiDus};
     products.push(p);
     isBaru = true;
   }
@@ -3305,6 +3354,7 @@ document.getElementById('btn-add-pembelian').addEventListener('click', async ()=
     kode: p.kode,
     nama: p.nama,
     qty,
+    isiDus,
     harga,
     total: qty*harga,
     status: 'belum',
@@ -3321,6 +3371,8 @@ document.getElementById('btn-add-pembelian').addEventListener('click', async ()=
   document.getElementById('pb-nama').value = '';
   document.getElementById('pb-harga').value = '';
   document.getElementById('pb-qty').value = 1;
+  document.getElementById('pb-qty-dus').value = '';
+  document.getElementById('pb-isidus').value = '';
   document.getElementById('pb-tanggal').value = todayISO();
   renderStokTable();
   populateBarangSelect();
@@ -3525,6 +3577,9 @@ function openEditPembelian(id){
   document.getElementById('ep-qty').value = p.qty;
   document.getElementById('ep-harga').value = p.harga;
   document.getElementById('ep-status').value = p.status;
+  const prodForIsiDus = products.find(x=>x.kode===p.kode);
+  document.getElementById('ep-isidus').value = p.isiDus || (prodForIsiDus && prodForIsiDus.isiDus) || '';
+  document.getElementById('ep-qty-dus').value = '';
   document.getElementById('edit-pembelian-overlay').classList.add('open');
 }
 function closeEditPembelian(){
@@ -3533,6 +3588,8 @@ function closeEditPembelian(){
 }
 document.getElementById('edit-pembelian-close').addEventListener('click', closeEditPembelian);
 document.getElementById('edit-pembelian-cancel').addEventListener('click', closeEditPembelian);
+document.getElementById('ep-isidus').addEventListener('input', ()=>hitungQtyPcsDariDus('ep-isidus','ep-qty-dus','ep-qty'));
+document.getElementById('ep-qty-dus').addEventListener('input', ()=>hitungQtyPcsDariDus('ep-isidus','ep-qty-dus','ep-qty'));
 
 document.getElementById('edit-pembelian-save').addEventListener('click', async ()=>{
   const p = purchases.find(x=>x.id===editingPembelianId);
@@ -3544,6 +3601,7 @@ document.getElementById('edit-pembelian-save').addEventListener('click', async (
   const nama = document.getElementById('ep-nama').value.trim();
   const qty = Number(document.getElementById('ep-qty').value)||0;
   const harga = Number(document.getElementById('ep-harga').value)||0;
+  const isiDus = Number(document.getElementById('ep-isidus').value)||0;
   const status = document.getElementById('ep-status').value;
 
   if(!kode){ showToast('Isi kode barang.', true); return; }
@@ -3562,9 +3620,10 @@ document.getElementById('edit-pembelian-save').addEventListener('click', async (
   if(newProd){
     newProd.stok += qty;
     newProd.hargaModal = harga;
+    if(isiDus>0) newProd.isiDus = isiDus;
     if(nama) newProd.nama = nama;
   } else {
-    newProd = {kode, nama, hargaModal:harga, stok:qty};
+    newProd = {kode, nama, hargaModal:harga, stok:qty, isiDus};
     products.push(newProd);
     isBaru = true;
   }
@@ -3576,6 +3635,7 @@ document.getElementById('edit-pembelian-save').addEventListener('click', async (
   p.kode = newProd.kode;
   p.nama = nama;
   p.qty = qty;
+  p.isiDus = isiDus;
   p.harga = harga;
   p.total = qty*harga;
   p.status = status;
