@@ -1897,7 +1897,7 @@ document.getElementById('btn-save-produk').addEventListener('click', async ()=>{
   if(editingKode){
     const idx = products.findIndex(p=>p.kode===editingKode);
     if(idx>-1){
-      if(kode !== editingKode && products.some(p=>p.kode===kode)){
+      if(kode.toLowerCase() !== editingKode.toLowerCase() && products.some(p=>p.kode.toLowerCase()===kode.toLowerCase())){
         showToast('Kode barang sudah digunakan.', true); return;
       }
       products[idx] = {kode, nama, hargaModal, stok, isiDus};
@@ -1907,7 +1907,7 @@ document.getElementById('btn-save-produk').addEventListener('click', async ()=>{
     document.getElementById('btn-save-produk').textContent = '+ Simpan Barang';
     document.getElementById('btn-cancel-edit').style.display = 'none';
   } else {
-    if(products.some(p=>p.kode===kode)){ showToast('Kode barang sudah digunakan.', true); return; }
+    if(products.some(p=>p.kode.toLowerCase()===kode.toLowerCase())){ showToast('Kode barang sudah digunakan.', true); return; }
     products.push({kode, nama, hargaModal, stok, isiDus});
   }
 
@@ -2375,11 +2375,12 @@ document.getElementById('f-customer').addEventListener('input', updateHargaPrevi
 // dilihat dari riwayat faktur (yang paling baru menang).
 function getLastPriceForCustomerSku(customerName, kode){
   const name = String(customerName||'').trim().toLowerCase();
-  if(!name || !kode) return null;
+  const kodeNorm = String(kode||'').trim().toLowerCase();
+  if(!name || !kodeNorm) return null;
   for(let i=invoices.length-1; i>=0; i--){
     const inv = invoices[i];
     if(String(inv.customer||'').trim().toLowerCase() !== name) continue;
-    const item = (inv.items||[]).find(it=>it.kode===kode);
+    const item = (inv.items||[]).find(it=>String(it.kode||'').trim().toLowerCase()===kodeNorm);
     if(item) return item.harga;
   }
   return null;
