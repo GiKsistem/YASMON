@@ -428,7 +428,7 @@
 
       <div class="panel">
         <h3 id="stok-form-title">Tambah Barang Baru</h3>
-        <p class="hint">Harga jual tidak diatur di sini — harga ditentukan manual setiap kali membuat faktur, karena berbeda-beda per toko.</p>
+        <p class="hint">Harga jual tidak diatur di sini — harga jual per tier diatur di menu Rekomendasi Harga, lalu terisi otomatis di faktur sesuai tier toko (tetap bisa diubah manual).</p>
         <div class="form-row">
           <div class="field mono">
             <label>Kode Barang</label>
@@ -483,7 +483,7 @@
     <section class="view" id="view-toko">
       <div class="page-head">
         <h2>Daftar Toko</h2>
-        <p>Daftarkan toko terlebih dahulu sebelum toko dipakai membuat order/faktur. ID Toko harus unik.</p>
+        <p>Daftarkan toko terlebih dahulu sebelum toko dipakai membuat order/faktur. ID Toko harus unik. Tier ditentukan oleh angka setelah YMA pada ID Toko (YMA1 = Tier 1, YMA2 = Tier 2, YMA3 = Tier 3), mengubah salah satunya otomatis mengubah yang lain.</p>
       </div>
 
       <div class="panel">
@@ -492,6 +492,15 @@
           <div class="field mono">
             <label>ID Toko</label>
             <input type="text" id="tk-id">
+          </div>
+          <div class="field">
+            <label>Tier</label>
+            <select id="tk-tier">
+              <option value="">-- Pilih tier --</option>
+              <option value="1">Tier 1 (Retail)</option>
+              <option value="2">Tier 2 (Semi Grosir)</option>
+              <option value="3">Tier 3 (Grosir)</option>
+            </select>
           </div>
           <div class="field">
             <label>Nama Toko</label>
@@ -529,7 +538,7 @@
         </div>
         <table>
           <thead><tr>
-            <th>ID Toko</th><th>Nama Toko</th><th>No. HP</th><th>Alamat</th><th>Keterangan</th><th class="right">Aksi</th>
+            <th>ID Toko</th><th>Tier</th><th>Nama Toko</th><th>No. HP</th><th>Alamat</th><th>Keterangan</th><th class="right">Aksi</th>
           </tr></thead>
           <tbody id="toko-table"></tbody>
         </table>
@@ -545,7 +554,7 @@
 
       <div class="panel">
         <h3 style="margin-top:0;">Pilih Toko (opsional)</h3>
-        <p class="hint">Cari toko yang sudah terdaftar berdasarkan ID atau Nama Toko. Info ini hanya dipakai di halaman aplikasi &amp; Tren Pembayaran — tidak akan muncul di hasil print faktur.</p>
+        <p class="hint">Cari toko yang sudah terdaftar berdasarkan ID atau Nama Toko. Info ini hanya dipakai di halaman aplikasi &amp; Tren Pembayaran — tidak akan muncul di hasil print faktur. Harga satuan barang terisi otomatis dari Rekomendasi Harga sesuai tier toko, dan tetap bisa diubah manual.</p>
         <div class="form-row" style="position:relative;">
           <div class="field" style="flex:2;">
             <label>Masukkan ID atau Nama Toko</label>
@@ -2025,7 +2034,7 @@ document.getElementById('stok-table').addEventListener('click', async e=>{
 /* ============ REKOMENDASI HARGA (3 TIER: 1=Retail, 2=Semi Grosir, 3=Grosir) ============ */
 const REKOM_TIERS = ['1','2','3'];
 
-function formatRupiahLive(input){
+function attachRupiahLive(input){
   input.addEventListener('input', ()=>{
     const digits = input.value.replace(/[^0-9]/g,'');
     input.value = digits==='' ? '' : 'Rp ' + Number(digits).toLocaleString('id-ID');
@@ -2167,6 +2176,24 @@ function findStoreByNameOrId(q){
   return stores.find(s=> normalizeTokoId(s.id)===normalizeTokoId(q) || (s.nama||'').trim().toLowerCase()===query);
 }
 
+// Tier toko dibaca dari angka setelah "YMA" pada ID Toko, contoh: PSB-YMA2-ASM = Tier 2.
+const TOKO_TIER_RE = /-YMA([123]?)(?=-|$)/i;
+function getTierFromKode(id){
+  const m = String(id||'').match(TOKO_TIER_RE);
+  return m && m[1] ? m[1] : '';
+}
+function kodeMemuatYMA(id){ return TOKO_TIER_RE.test(String(id||'')); }
+function setTierInKode(id, tier){
+  const v = String(id||'').trim();
+  if(!tier || !kodeMemuatYMA(v)) return v;
+  return v.replace(TOKO_TIER_RE, '-YMA'+tier);
+}
+function tierBadgeHtml(tier){
+  if(!tier) return '<span class="badge badge-low">Belum ada</span>';
+  const st = {'1':'background:var(--accent-tint);color:var(--accent-dark);','2':'background:var(--purple-tint);color:var(--purple);','3':'background:var(--success-tint);color:var(--success);'}[tier];
+  return '<span class="badge" style="'+st+'">Tier '+tier+'</span>';
+}
+
 function renderStoreTable(){
   const tbody = document.getElementById('toko-table');
   if(!tbody) return;
@@ -2185,6 +2212,7 @@ function renderStoreTable(){
   tbody.innerHTML = list.length ? list.map(s=>`
     <tr>
       <td class="kode">${escapeHtml(s.id)}</td>
+      <td>${tierBadgeHtml(getTierFromKode(s.id))}</td>
       <td>${escapeHtml(s.nama||'-')}</td>
       <td>${escapeHtml(s.hp||'-')}</td>
       <td>${escapeHtml(s.alamat||'-')}</td>
@@ -2193,7 +2221,7 @@ function renderStoreTable(){
         <button class="btn btn-ghost btn-sm" data-edit-toko="${escapeHtml(s.id)}">Edit</button>
         <button class="btn btn-danger btn-sm" data-del-toko="${escapeHtml(s.id)}">Hapus</button>
       </td>
-    </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Belum ada toko terdaftar / tidak ditemukan.</td></tr>`;
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="7">Belum ada toko terdaftar / tidak ditemukan.</td></tr>`;
 }
 document.getElementById('toko-search')?.addEventListener('input', renderStoreTable);
 
@@ -2204,7 +2232,7 @@ function showTokoError(msg){
 }
 
 document.getElementById('btn-save-toko')?.addEventListener('click', async ()=>{
-  const id = document.getElementById('tk-id').value.trim();
+  let id = document.getElementById('tk-id').value.trim();
   const nama = document.getElementById('tk-nama').value.trim();
   const hp = document.getElementById('tk-hp').value.trim(); // disimpan sebagai teks, angka 0 di depan tidak hilang
   const alamat = document.getElementById('tk-alamat').value.trim();
@@ -2213,6 +2241,10 @@ document.getElementById('btn-save-toko')?.addEventListener('click', async ()=>{
   showTokoError('');
   if(!id){ showTokoError('ID Toko tidak boleh kosong.'); return; }
   if(!nama){ showTokoError('Nama Toko tidak boleh kosong.'); return; }
+  const tier = document.getElementById('tk-tier').value;
+  if(!tier){ showTokoError('Pilih Tier toko terlebih dahulu (Tier 1, 2, atau 3).'); return; }
+  if(!kodeMemuatYMA(id)){ showTokoError('ID Toko harus memuat kode YMA, contoh: PSB-YMA1-ASM (angka setelah YMA = tier).'); return; }
+  id = setTierInKode(id, tier); // pastikan angka pada kode selalu sama dengan tier yang dipilih
 
   const existing = findStoreById(id);
   if(editingTokoId){
@@ -2223,8 +2255,16 @@ document.getElementById('btn-save-toko')?.addEventListener('click', async ()=>{
     }
     const s = findStoreById(editingTokoId);
     if(!s){ showTokoError('Toko yang diedit tidak ditemukan lagi.'); return; }
+    const oldId = s.id;
     s.id = id; s.nama = nama; s.hp = hp; s.alamat = alamat; s.keterangan = keterangan;
     await saveKey('stores', stores);
+    // Kalau ID berubah (mis. pindah tier), ikutkan referensi toko di faktur lama supaya riwayat tidak terputus.
+    if(normalizeTokoId(oldId)!==normalizeTokoId(id)){
+      let ch = false;
+      invoices.forEach(inv=>{ if(normalizeTokoId(inv.tokoId)===normalizeTokoId(oldId)){ inv.tokoId = id; ch = true; } });
+      if(ch) await saveKey('invoices', invoices);
+      if(selectedTokoForInvoice && normalizeTokoId(selectedTokoForInvoice.id)===normalizeTokoId(oldId)) selectedTokoForInvoice.id = id;
+    }
     showToast('Toko '+id+' berhasil diperbarui.');
   } else {
     if(existing){
@@ -2245,8 +2285,19 @@ document.getElementById('btn-save-toko')?.addEventListener('click', async ()=>{
   document.getElementById('tk-hp').value = '';
   document.getElementById('tk-alamat').value = '';
   document.getElementById('tk-keterangan').value = '';
+  document.getElementById('tk-tier').value = '';
   renderStoreTable();
   renderDashboard();
+});
+
+document.getElementById('tk-tier')?.addEventListener('change', e=>{
+  const t = e.target.value;
+  const idEl = document.getElementById('tk-id');
+  if(t) idEl.value = setTierInKode(idEl.value, t); // ganti angka YMA sesuai tier
+});
+document.getElementById('tk-id')?.addEventListener('input', e=>{
+  const t = getTierFromKode(e.target.value);
+  if(t) document.getElementById('tk-tier').value = t; // kode diubah -> dropdown tier ikut
 });
 
 document.getElementById('btn-cancel-edit-toko')?.addEventListener('click', ()=>{
@@ -2259,6 +2310,7 @@ document.getElementById('btn-cancel-edit-toko')?.addEventListener('click', ()=>{
   document.getElementById('tk-hp').value = '';
   document.getElementById('tk-alamat').value = '';
   document.getElementById('tk-keterangan').value = '';
+  document.getElementById('tk-tier').value = '';
   showTokoError('');
 });
 
@@ -2273,6 +2325,7 @@ document.getElementById('toko-table')?.addEventListener('click', async e=>{
     document.getElementById('btn-save-toko').textContent = 'Simpan Perubahan';
     document.getElementById('btn-cancel-edit-toko').style.display = 'inline-block';
     document.getElementById('tk-id').value = s.id;
+    document.getElementById('tk-tier').value = getTierFromKode(s.id);
     document.getElementById('tk-nama').value = s.nama||'';
     document.getElementById('tk-hp').value = s.hp||'';
     document.getElementById('tk-alamat').value = s.alamat||'';
@@ -2345,7 +2398,7 @@ document.getElementById('f-pilih-toko-results')?.addEventListener('click', e=>{
   document.getElementById('f-pilih-toko').value = '';
   document.getElementById('f-pilih-toko-results').style.display='none';
   document.getElementById('f-toko-selected-wrap').style.display='block';
-  document.getElementById('f-toko-selected-label').textContent = (s.nama||'(tanpa nama)') + ' — ' + s.id;
+  document.getElementById('f-toko-selected-label').textContent = (s.nama||'(tanpa nama)') + ' — ' + s.id + (getTierFromKode(s.id) ? ' · Tier '+getTierFromKode(s.id) : '');
   // Otomatis isi Nama Pelanggan/Toko, alamat & no. telp dari data toko (boleh diedit manual lagi)
   document.getElementById('f-customer').value = s.nama || s.id;
   if(s.alamat) document.getElementById('f-alamat').value = s.alamat;
@@ -2369,29 +2422,30 @@ function populateBarangSelect(){
   updateHargaPreview();
 }
 document.getElementById('f-select-barang').addEventListener('change', updateHargaPreview);
-document.getElementById('f-customer').addEventListener('input', updateHargaPreview);
 
-// Cari harga terakhir yang pernah dipakai toko/pelanggan ini untuk SKU tertentu,
-// dilihat dari riwayat faktur (yang paling baru menang).
-function getLastPriceForCustomerSku(customerName, kode){
-  const name = String(customerName||'').trim().toLowerCase();
-  const kodeNorm = String(kode||'').trim().toLowerCase();
-  if(!name || !kodeNorm) return null;
-  for(let i=invoices.length-1; i>=0; i--){
-    const inv = invoices[i];
-    if(String(inv.customer||'').trim().toLowerCase() !== name) continue;
-    const item = (inv.items||[]).find(it=>String(it.kode||'').trim().toLowerCase()===kodeNorm);
-    if(item) return item.harga;
-  }
-  return null;
+// Harga satuan otomatis = Rekomendasi Harga Jual sesuai tier toko terpilih (dibaca langsung dari
+// data Rekomendasi Harga setiap kali, jadi selalu mengikuti perubahan terbaru). Tetap bisa diedit manual.
+function getRekomHarga(kode, tier){
+  if(!tier) return null;
+  migrasiRekomendasiTier();
+  const p = products.find(x=>x.kode===kode);
+  if(!p) return null;
+  const n = Number(p['hargaRekomendasiTier'+tier]);
+  return n>0 ? n : null;
 }
-
+function getTierTokoTerpilih(){
+  if(!selectedTokoForInvoice) return '';
+  const st = findStoreById(selectedTokoForInvoice.id);
+  return st ? getTierFromKode(st.id) : '';
+}
 function updateHargaPreview(){
   const kode = document.getElementById('f-select-barang').value;
-  const customerName = document.getElementById('f-customer').value;
   const input = document.getElementById('f-harga-preview');
-  const last = getLastPriceForCustomerSku(customerName, kode);
-  input.value = last!=null ? formatRupiahLive(last) : '';
+  const tier = getTierTokoTerpilih();
+  const h = getRekomHarga(kode, tier);
+  input.value = h!=null ? formatRupiahLive(h) : '';
+  input.placeholder = !selectedTokoForInvoice ? 'Rp 0 (pilih toko untuk harga otomatis)'
+    : (tier ? (h==null ? 'Rekomendasi Tier '+tier+' belum diisi' : 'Rp 0') : 'Tier toko tidak terdeteksi');
 }
 document.getElementById('f-harga-preview').addEventListener('input', e=>{
   e.target.value = formatRupiahLive(e.target.value);
@@ -2894,6 +2948,16 @@ function populateEditBarangSelect(){
     : `<option value="">Belum ada barang di stok</option>`;
 }
 
+function updateEditHargaPreview(){
+  const input = document.getElementById('ei-item-harga');
+  const inv = invoices.find(x=>x.id===editingInvoiceId);
+  if(!input || !inv) return;
+  const st = inv.tokoId ? findStoreById(inv.tokoId) : null;
+  const h = getRekomHarga(document.getElementById('ei-select-barang').value, st ? getTierFromKode(st.id) : '');
+  input.value = h!=null ? formatRupiahLive(h) : '';
+}
+document.getElementById('ei-select-barang').addEventListener('change', updateEditHargaPreview);
+
 function openEditInvoice(id){
   const inv = invoices.find(x=>x.id===id);
   if(!inv) return;
@@ -2920,6 +2984,7 @@ function openEditInvoice(id){
   document.getElementById('ei-item-qty').value = 1;
   document.getElementById('ei-item-harga').value = '';
   renderEditCart();
+  updateEditHargaPreview();
   document.getElementById('edit-invoice-overlay').classList.add('open');
 }
 function closeEditInvoice(){
@@ -2952,7 +3017,7 @@ document.getElementById('btn-ei-add-item').addEventListener('click', ()=>{
   else{ editCart.push({kode:p.kode, nama:p.nama, qty, harga, hargaModal:p.hargaModal}); }
 
   document.getElementById('ei-item-qty').value = 1;
-  document.getElementById('ei-item-harga').value = '';
+  updateEditHargaPreview();
   renderEditCart();
 });
 
