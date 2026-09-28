@@ -428,7 +428,7 @@
 
       <div class="panel">
         <h3 id="stok-form-title">Tambah Barang Baru</h3>
-        <p class="hint">Harga jual tidak diatur di sini — harga jual per tier diatur di menu Rekomendasi Harga, lalu terisi otomatis di faktur sesuai tier toko (tetap bisa diubah manual).</p>
+        <p class="hint">Harga jual tidak diatur di sini — harga jual per tier diatur di menu Rekomendasi Harga sebagai acuan. Harga di faktur terisi otomatis dari harga terakhir toko di faktur sebelumnya (tetap bisa diubah manual).</p>
         <div class="form-row">
           <div class="field mono">
             <label>Kode Barang</label>
@@ -554,7 +554,7 @@
 
       <div class="panel">
         <h3 style="margin-top:0;">Pilih Toko (opsional)</h3>
-        <p class="hint">Cari toko yang sudah terdaftar berdasarkan ID atau Nama Toko. Info ini hanya dipakai di halaman aplikasi &amp; Tren Pembayaran — tidak akan muncul di hasil print faktur. Harga satuan barang terisi otomatis dari Rekomendasi Harga sesuai tier toko, dan tetap bisa diubah manual.</p>
+        <p class="hint">Cari toko yang sudah terdaftar berdasarkan ID atau Nama Toko. Info ini hanya dipakai di halaman aplikasi &amp; Tren Pembayaran — tidak akan muncul di hasil print faktur. Harga satuan barang terisi otomatis dari harga terakhir yang didapat toko ini di faktur sebelumnya (tetap bisa diubah manual).</p>
         <div class="form-row" style="position:relative;">
           <div class="field" style="flex:2;">
             <label>Masukkan ID atau Nama Toko</label>
@@ -612,6 +612,7 @@
           <div class="field">
             <label>Harga Satuan</label>
             <input type="text" inputmode="numeric" id="f-harga-preview" placeholder="Rp 0">
+            <div id="f-harga-sumber" style="font-size:11.5px;color:var(--ink-soft);margin-top:4px;"></div>
           </div>
         </div>
         <button class="btn btn-dark" id="btn-add-item">+ Tambah ke Faktur</button>
@@ -2404,6 +2405,7 @@ document.getElementById('f-pilih-toko-results')?.addEventListener('click', e=>{
   if(s.alamat) document.getElementById('f-alamat').value = s.alamat;
   if(s.hp) document.getElementById('f-telp').value = s.hp;
   updateHargaPreview();
+  repriceCartByToko();
 });
 document.getElementById('btn-clear-toko-selected')?.addEventListener('click', ()=>{
   selectedTokoForInvoice = null;
@@ -2423,29 +2425,82 @@ function populateBarangSelect(){
 }
 document.getElementById('f-select-barang').addEventListener('change', updateHargaPreview);
 
-// Harga satuan otomatis = Rekomendasi Harga Jual sesuai tier toko terpilih (dibaca langsung dari
-// data Rekomendasi Harga setiap kali, jadi selalu mengikuti perubahan terbaru). Tetap bisa diedit manual.
-function getRekomHarga(kode, tier){
-  if(!tier) return null;
-  migrasiRekomendasiTier();
-  const p = products.find(x=>x.kode===kode);
-  if(!p) return null;
-  const n = Number(p['hargaRekomendasiTier'+tier]);
-  return n>0 ? n : null;
+// Harga satuan otomatis = harga terakhir yang didapat toko tersebut untuk barang itu di faktur
+// sebelumnya (faktur terbaru berdasarkan tanggal, lalu waktu dibuat). Tier tetap dipakai sebagai
+// acuan di menu Rekomendasi Harga, tapi tidak lagi mengisi harga faktur. Tetap bisa diedit manual.
+const normTeks = v => String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+// Kunci pencocokan toko untuk faktur lama yang tidak menyimpan ID toko: ID lengkap, nama toko,
+// dan potongan terakhir ID (contoh PSB-YMA2-AJMP -> "ajmp", biasanya sama dengan nama di faktur lama).
+function kunciToko(tokoId){
+  const st = findStoreById(tokoId);
+  const keys = new Set();
+  const id = st ? st.id : tokoId;
+  keys.add(normTeks(id));
+  if(st && st.nama) keys.add(normTeks(st.nama));
+  const seg = String(id||'').split('-').pop();
+  if(normTeks(seg).length>=3 && !/^yma\d?$/i.test(seg)) keys.add(normTeks(seg));
+  keys.delete('');
+  return keys;
 }
-function getTierTokoTerpilih(){
-  if(!selectedTokoForInvoice) return '';
-  const st = findStoreById(selectedTokoForInvoice.id);
-  return st ? getTierFromKode(st.id) : '';
+function fakturMilikToko(inv, tid, keys, namaNorm){
+  if(inv.tokoId) return normalizeTokoId(inv.tokoId)===tid;
+  const c = normTeks(inv.customer);
+  if(!c) return false;
+  if(keys.has(c)) return true;
+  // nama di faktur lama sedikit beda dengan nama toko (mis. "AJMP" vs "Toko AJMP Jaya")
+  return namaNorm.length>=4 && c.length>=4 && (c.includes(namaNorm) || namaNorm.includes(c));
+}
+const HARGA_MIN_OTOMATIS = 100;
+function getHargaTerakhirInfo(tokoId, kode, excludeInvoiceId){
+  if(!tokoId) return null;
+  const tid = normalizeTokoId(tokoId);
+  const keys = kunciToko(tokoId);
+  const st = findStoreById(tokoId);
+  const namaNorm = st ? normTeks(st.nama) : '';
+  const prod = products.find(p=>p.kode===kode);
+  const namaBarang = prod ? normTeks(prod.nama) : '';
+  const cocokItem = it => it.kode===kode || (namaBarang && normTeks(it.nama)===namaBarang);
+  const cocok = invoices.filter(inv=>
+      !(excludeInvoiceId && inv.id===excludeInvoiceId) &&
+      fakturMilikToko(inv, tid, keys, namaNorm) &&
+      (inv.items||[]).some(cocokItem))
+    .sort((a,b)=> ((b.tanggal||'').localeCompare(a.tanggal||'')) || ((b.createdAt||0)-(a.createdAt||0)));
+  for(const inv of cocok){
+    const its = inv.items.filter(cocokItem);
+    const n = Number(its[its.length-1].harga);
+    // Harga di bawah Rp 100 dianggap sampel/bonus (mis. dicatat Rp 1), dilewati: pakai faktur sebelumnya.
+    if(n>=HARGA_MIN_OTOMATIS) return {harga:n, nomor:inv.nomor, tanggal:inv.tanggal};
+  }
+  return null;
+}
+function getHargaTerakhir(tokoId, kode, excludeInvoiceId){
+  const r = getHargaTerakhirInfo(tokoId, kode, excludeInvoiceId);
+  return r ? r.harga : null;
+}
+// Saat toko dipilih/diganti, barang yang sudah ada di keranjang ikut memakai harga terakhir toko itu.
+// Barang yang belum pernah dibeli toko tersebut dibiarkan dengan harga yang sudah ada.
+function repriceCartByToko(){
+  if(!selectedTokoForInvoice || cart.length===0) return;
+  let diubah = 0;
+  cart.forEach(c=>{
+    const h = getHargaTerakhir(selectedTokoForInvoice.id, c.kode);
+    if(h!=null && c.harga!==h){ c.harga = h; diubah++; }
+  });
+  renderCart();
+  if(diubah) showToast('Harga '+diubah+' barang di keranjang disesuaikan ke harga terakhir toko ini.');
 }
 function updateHargaPreview(){
   const kode = document.getElementById('f-select-barang').value;
   const input = document.getElementById('f-harga-preview');
-  const tier = getTierTokoTerpilih();
-  const h = getRekomHarga(kode, tier);
+  const h = selectedTokoForInvoice ? getHargaTerakhir(selectedTokoForInvoice.id, kode) : null;
   input.value = h!=null ? formatRupiahLive(h) : '';
   input.placeholder = !selectedTokoForInvoice ? 'Rp 0 (pilih toko untuk harga otomatis)'
-    : (tier ? (h==null ? 'Rekomendasi Tier '+tier+' belum diisi' : 'Rp 0') : 'Tier toko tidak terdeteksi');
+    : (h==null ? 'Belum pernah beli barang ini — isi manual' : 'Rp 0');
+  const src = document.getElementById('f-harga-sumber');
+  if(src){
+    const info = selectedTokoForInvoice ? getHargaTerakhirInfo(selectedTokoForInvoice.id, kode) : null;
+    src.textContent = info ? 'Harga dari faktur '+info.nomor+' ('+info.tanggal+')' : '';
+  }
 }
 document.getElementById('f-harga-preview').addEventListener('input', e=>{
   e.target.value = formatRupiahLive(e.target.value);
@@ -2952,8 +3007,14 @@ function updateEditHargaPreview(){
   const input = document.getElementById('ei-item-harga');
   const inv = invoices.find(x=>x.id===editingInvoiceId);
   if(!input || !inv) return;
-  const st = inv.tokoId ? findStoreById(inv.tokoId) : null;
-  const h = getRekomHarga(document.getElementById('ei-select-barang').value, st ? getTierFromKode(st.id) : '');
+  // Faktur lama tanpa ID toko: cari toko lewat nama pelanggan di faktur itu.
+  let tid = inv.tokoId;
+  if(!tid && inv.customer){
+    const c = normTeks(inv.customer);
+    const st = stores.find(x=>kunciToko(x.id).has(c));
+    if(st) tid = st.id;
+  }
+  const h = tid ? getHargaTerakhir(tid, document.getElementById('ei-select-barang').value, inv.id) : null;
   input.value = h!=null ? formatRupiahLive(h) : '';
 }
 document.getElementById('ei-select-barang').addEventListener('change', updateEditHargaPreview);
