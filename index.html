@@ -294,8 +294,11 @@
       <button data-view="tren"><span class="nav-num">06</span>Tren Pembayaran</button>
       <button data-view="margin"><span class="nav-num">07</span>Margin per Toko</button>
       <button data-view="pembelian"><span class="nav-num">08</span>Pembelian Supplier</button>
-      <button data-view="pengeluaran"><span class="nav-num">09</span>Pengeluaran</button>
+      <button data-view="pengeluaran"><span class="nav-num">09</span>Pengeluaran Operasional</button>
       <button data-view="rekomendasi"><span class="nav-num">10</span>Rekomendasi Harga</button>
+      <button data-view="bank"><span class="nav-num">11</span>Pengeluaran Bank</button>
+      <button data-view="pinjaman"><span class="nav-num">12</span>Pengeluaran Pinjaman</button>
+      <button data-view="catatan"><span class="nav-num">13</span>Catatan</button>
     </nav>
     <div class="sidebar-foot">DATA TERSIMPAN OTOMATIS</div>
   </aside>
@@ -880,7 +883,7 @@
     <!-- PENGELUARAN -->
     <section class="view" id="view-pengeluaran">
       <div class="page-head">
-        <h2>Pengeluaran</h2>
+        <h2>Pengeluaran Operasional</h2>
         <p>Catat biaya operasional. Total pengeluaran terhitung otomatis.</p>
       </div>
 
@@ -911,6 +914,79 @@
         <table>
           <thead><tr><th>Tanggal</th><th>Keterangan</th><th class="right">Jumlah</th><th class="right">Aksi</th></tr></thead>
           <tbody id="pengeluaran-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <!-- PENGELUARAN BANK -->
+    <section class="view" id="view-bank">
+      <div class="page-head">
+        <h2>Pengeluaran Bank</h2>
+        <p>Catat uang masuk dan keluar terkait bank. Pengeluaran mengurangi Saldo Kas, Pemasukan menambah Saldo Kas. Tidak memengaruhi Estimasi Laba.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Pengeluaran / Pemasukan Bank</h3>
+        <p class="hint">Isi salah satu kolom saja sesuai kejadiannya (boleh juga keduanya). Setiap Simpan dicatat sebagai transaksi baru dan langsung menambah/mengurangi Saldo Kas. Kolom kosong lagi setelah tersimpan.</p>
+        <div class="form-row" style="max-width:420px;">
+          <div class="field"><label>Pengeluaran Baru (Rp)</label><input type="text" inputmode="numeric" id="bk-keluar" placeholder="Rp 0" autocomplete="off"></div>
+          <div class="field"><label>Pemasukan Baru (Rp)</label><input type="text" inputmode="numeric" id="bk-masuk" placeholder="Rp 0" autocomplete="off"></div>
+        </div>
+        <div class="form-row" style="max-width:420px;">
+          <div class="field"><label>Keterangan</label><input type="text" id="bk-keterangan"></div>
+        </div>
+        <button class="btn btn-primary" id="bk-btn-add">Simpan</button>
+      </div>
+
+      <div class="panel">
+        <div class="table-toolbar">
+          <h3 style="margin:0;">Riwayat Transaksi</h3>
+          <div class="tag" style="font-family:var(--mono);">
+            Pengeluaran: <b id="bk-total-keluar">Rp 0</b> &nbsp;|&nbsp;
+            Pemasukan: <b id="bk-total-masuk">Rp 0</b> &nbsp;|&nbsp;
+            Selisih: <b id="bk-selisih">Rp 0</b>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Tanggal</th><th>Tipe</th><th>Keterangan</th><th class="right">Jumlah</th><th class="right">Aksi</th></tr></thead>
+          <tbody id="bk-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PENGELUARAN PINJAMAN -->
+    <section class="view" id="view-pinjaman">
+      <div class="page-head">
+        <h2>Pengeluaran Pinjaman</h2>
+        <p>Catat pengeluaran dan pengembalian terkait pinjaman. Pengeluaran mengurangi Saldo Kas, Pengembalian menambah Saldo Kas. Tidak memengaruhi Estimasi Laba.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Pengeluaran / Pengembalian Pinjaman</h3>
+        <p class="hint">Isi salah satu kolom saja sesuai kejadiannya (boleh juga keduanya). Setiap Simpan dicatat sebagai transaksi baru dan langsung menambah/mengurangi Saldo Kas. Kolom kosong lagi setelah tersimpan.</p>
+        <div class="form-row" style="max-width:420px;">
+          <div class="field"><label>Pengeluaran Baru (Rp)</label><input type="text" inputmode="numeric" id="pj-keluar" placeholder="Rp 0" autocomplete="off"></div>
+          <div class="field"><label>Pengembalian Baru (Rp)</label><input type="text" inputmode="numeric" id="pj-masuk" placeholder="Rp 0" autocomplete="off"></div>
+        </div>
+        <div class="form-row" style="max-width:420px;">
+          <div class="field"><label>Keterangan</label><input type="text" id="pj-keterangan"></div>
+        </div>
+        <button class="btn btn-primary" id="pj-btn-add">Simpan</button>
+      </div>
+
+      <div class="panel">
+        <div class="table-toolbar">
+          <h3 style="margin:0;">Riwayat Transaksi</h3>
+          <div class="tag" style="font-family:var(--mono);">
+            Pengeluaran: <b id="pj-total-keluar">Rp 0</b> &nbsp;|&nbsp;
+            Pengembalian: <b id="pj-total-masuk">Rp 0</b> &nbsp;|&nbsp;
+            Selisih: <b id="pj-selisih">Rp 0</b>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Tanggal</th><th>Tipe</th><th>Keterangan</th><th class="right">Jumlah</th><th class="right">Aksi</th></tr></thead>
+          <tbody id="pj-table"></tbody>
         </table>
       </div>
     </section>
@@ -962,6 +1038,47 @@
           </tr></thead>
           <tbody class="rekomendasi-table" data-tier="3"></tbody>
         </table>
+      </div>
+    </section>
+
+
+    <!-- CATATAN -->
+    <section class="view" id="view-catatan">
+      <style>
+        .cat-wrap{display:flex;gap:16px;align-items:flex-start;}
+        .cat-side{width:240px;flex-shrink:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;}
+        .cat-side .btn{width:100%;justify-content:center;box-sizing:border-box;margin-bottom:12px;}
+        .cat-list{display:flex;flex-direction:column;gap:3px;max-height:62vh;overflow-y:auto;}
+        .cat-item{all:unset;cursor:pointer;box-sizing:border-box;padding:9px 10px;border-radius:7px;font-size:13px;color:var(--ink);display:flex;gap:8px;align-items:baseline;}
+        .cat-item:hover{background:var(--bg);}
+        .cat-item.active{background:var(--accent-tint);color:var(--accent-dark);font-weight:600;}
+        .cat-item .cat-no{font-family:var(--mono);font-size:11px;color:var(--ink-soft);min-width:20px;}
+        .cat-item .cat-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .cat-main{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;}
+        .cat-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+        .cat-bar .cat-nav{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--ink-soft);}
+        .cat-judul{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:7px;padding:10px 12px;font-size:16px;font-weight:600;font-family:var(--body);background:#FCFBF8;color:var(--ink);margin-bottom:10px;}
+        .cat-isi{width:100%;box-sizing:border-box;min-height:55vh;border:1px solid var(--line);border-radius:7px;padding:12px;font-size:14px;line-height:1.65;font-family:var(--body);background:#FCFBF8;color:var(--ink);resize:vertical;}
+        .cat-tgl{font-family:var(--display);font-size:20px;letter-spacing:.2px;margin-bottom:10px;color:var(--ink);}
+        .cat-judul:focus,.cat-isi:focus{outline:none;border-color:var(--accent);background:#fff;}
+        .cat-status{font-size:11.5px;color:var(--ink-soft);font-family:var(--mono);margin-top:8px;}
+        .cat-empty{text-align:center;color:var(--ink-soft);padding:60px 20px;font-size:13.5px;}
+        @media (max-width:900px){
+          .cat-wrap{flex-direction:column;}
+          .cat-side{width:100%;box-sizing:border-box;}
+          .cat-list{max-height:200px;}
+        }
+      </style>
+      <div class="page-head">
+        <h2>Catatan</h2>
+      </div>
+
+      <div class="cat-wrap">
+        <div class="cat-side">
+          <button class="btn btn-primary" id="cat-add">+ Halaman Baru</button>
+          <div class="cat-list" id="cat-list"></div>
+        </div>
+        <div class="cat-main" id="cat-main"></div>
       </div>
     </section>
 
@@ -1229,6 +1346,8 @@ let products = [];
 let invoices = [];
 let purchases = [];
 let expenses = [];
+let bankLedger = [];      // Menu 11: transaksi bank (hanya menggerakkan saldo kas)
+let pinjamanLedger = [];  // Menu 12: transaksi pinjaman (hanya menggerakkan saldo kas)
 let stores = [];
 let invoiceCounter = 0;
 let purchaseCounter = 0;
@@ -1305,6 +1424,8 @@ async function reloadStateFromCache(){
   invoices = firestoreCache.invoices || [];
   purchases = firestoreCache.purchases || [];
   expenses = firestoreCache.expenses || [];
+  bankLedger = firestoreCache.bankLedger || [];
+  pinjamanLedger = firestoreCache.pinjamanLedger || [];
   stores = firestoreCache.stores || [];
   invoiceCounter = firestoreCache.invoiceCounter || 0;
   purchaseCounter = firestoreCache.purchaseCounter || 0;
@@ -1411,7 +1532,8 @@ document.getElementById('password-input').addEventListener('keydown', e=>{
 /* ============ NAV ============ */
 const PASSWORD_PROTECTED_VIEWS = {
   margin: 'Masukkan password untuk membuka Margin per Toko.',
-  pembelian: 'Masukkan password untuk membuka Pembelian Supplier.'
+  pembelian: 'Masukkan password untuk membuka Pembelian Supplier.',
+  catatan: 'Masukkan password untuk membuka Catatan.'
 };
 document.getElementById('nav').addEventListener('click', async e=>{
   const btn = e.target.closest('button[data-view]');
@@ -1434,6 +1556,8 @@ document.getElementById('nav').addEventListener('click', async e=>{
   if(view === 'margin') renderMarginTable();
   if(view === 'pembelian') populatePembelianDatalist();
   if(view === 'rekomendasi') renderSemuaRekomendasiTable();
+  if(view === 'bank') renderLedgerBank();
+  if(view === 'pinjaman') renderLedgerPinjaman();
 });
 
 /* ============ INIT ============ */
@@ -1443,6 +1567,8 @@ async function init(){
   invoices = await loadKey('invoices', []);
   purchases = await loadKey('purchases', []);
   expenses = await loadKey('expenses', []);
+  bankLedger = await loadKey('bankLedger', []);
+  pinjamanLedger = await loadKey('pinjamanLedger', []);
   stores = await loadKey('stores', []);
   invoiceCounter = await loadKey('invoiceCounter', 0);
   purchaseCounter = await loadKey('purchaseCounter', 0);
@@ -1522,6 +1648,8 @@ function renderAll(){
   renderTagihanTable();
   renderPembelianTable();
   renderPengeluaranTable();
+  renderLedgerBank();
+  renderLedgerPinjaman();
   renderStoreTable();
   if(document.getElementById('view-margin')?.classList.contains('active')) renderMarginTable();
   if(document.getElementById('view-tren')?.classList.contains('active')) renderTrenPembayaran();
@@ -1818,7 +1946,8 @@ document.getElementById('btn-backup-download').addEventListener('click', ()=>{
     exportedAt: new Date().toISOString(),
     data: {
       products, invoices, purchases, expenses, stores,
-      invoiceCounter, purchaseCounter, companyProfile, kasProfile
+      invoiceCounter, purchaseCounter, companyProfile, kasProfile,
+      bankLedger, pinjamanLedger
     }
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
@@ -1864,6 +1993,8 @@ document.getElementById('btn-backup-restore').addEventListener('click', async ()
   invoiceCounter = d.invoiceCounter || 0;
   purchaseCounter = d.purchaseCounter || 0;
   if(d.companyProfile) companyProfile = d.companyProfile; // kalau file backup tidak menyertakan profil toko, profil yang sekarang tetap dipakai
+  if(Array.isArray(d.bankLedger)) bankLedger = d.bankLedger;
+  if(Array.isArray(d.pinjamanLedger)) pinjamanLedger = d.pinjamanLedger;
   if(d.kasProfile) kasProfile = d.kasProfile; // kalau file backup tidak menyertakan data modal, data modal yang sekarang tetap dipakai
 
   await saveKey('products', products);
@@ -1874,6 +2005,8 @@ document.getElementById('btn-backup-restore').addEventListener('click', async ()
   await saveKey('invoiceCounter', invoiceCounter);
   await saveKey('purchaseCounter', purchaseCounter);
   await saveKey('companyProfile', companyProfile);
+  await saveKey('bankLedger', bankLedger);
+  await saveKey('pinjamanLedger', pinjamanLedger);
   await saveKey('kasProfile', kasProfile);
 
   document.getElementById('cp-alamat').value = companyProfile.alamat||'';
@@ -1882,6 +2015,8 @@ document.getElementById('btn-backup-restore').addEventListener('click', async ()
   document.getElementById('cp-rek').value = companyProfile.rek||'';
   applyModalPertamaUI();
   renderRiwayatDana();
+  renderLedgerBank();
+  renderLedgerPinjaman();
 
   renderDashboard();
   renderStokTable();
@@ -3945,6 +4080,142 @@ document.getElementById('edit-pembelian-save').addEventListener('click', async (
   showToast('Pembelian '+p.nomor+' diperbarui' + (isBaru ? ', SKU baru dibuat di stok.' : ', stok disesuaikan.'));
 });
 
+/* ============ PENGELUARAN BANK & PINJAMAN (menu 11 & 12) ============
+   Hanya menggerakkan Saldo Kas lewat adjustSaldoKas():
+   Pemasukan = +jumlah, Pengeluaran = -jumlah. Data disimpan terpisah dari `expenses`,
+   jadi TIDAK memengaruhi Total Pengeluaran, Estimasi Laba, maupun Omset. */
+function setupLedger(cfg){
+  const $ = id => document.getElementById(cfg.pfx+'-'+id);
+
+  function render(){
+    const list = [...cfg.get()].sort((a,b)=> (b.tanggal||'').localeCompare(a.tanggal||'') || (b.createdAt-a.createdAt));
+    const masuk = list.filter(x=>x.jenis==='masuk').reduce((s,x)=>s+x.jumlah,0);
+    const keluar = list.filter(x=>x.jenis==='keluar').reduce((s,x)=>s+x.jumlah,0);
+    $('total-masuk').textContent = rupiah(masuk);
+    $('total-keluar').textContent = rupiah(keluar);
+    $('selisih').textContent = (masuk-keluar<0 ? '-' : '') + rupiah(Math.abs(masuk-keluar));
+    $('table').innerHTML = list.length ? list.map(x=>`
+      <tr>
+        <td>${fmtDate(x.tanggal)}</td>
+        <td><span class="badge ${x.jenis==='masuk'?'badge-lunas':'badge-belum'}">${x.jenis==='masuk'?'Pemasukan':'Pengeluaran'}</span></td>
+        <td>${x.keterangan?escapeHtml(x.keterangan):'-'}</td>
+        <td class="right num">${x.jenis==='masuk'?'+':'-'}${rupiah(x.jumlah)}</td>
+        <td class="right"><button class="btn btn-danger btn-sm" data-del="${x.id}">Hapus</button></td>
+      </tr>`).join('') : `<tr class="empty-row"><td colspan="5">Belum ada transaksi.</td></tr>`;
+  }
+
+  $('btn-add').addEventListener('click', async ()=>{
+    const keluar = parseRupiahLive($('keluar').value);
+    const masuk = parseRupiahLive($('masuk').value);
+    const keterangan = $('keterangan').value.trim();
+    if(keluar<=0 && masuk<=0){ showToast('Isi jumlah pengeluaran atau pemasukan.', true); return; }
+
+    const arr = cfg.get();
+    const ts = Date.now();
+    const tanggal = todayISO();
+    if(keluar>0) arr.push({id:uid(), tanggal, jenis:'keluar', keterangan, jumlah:keluar, createdAt:ts});
+    if(masuk>0) arr.push({id:uid(), tanggal, jenis:'masuk', keterangan, jumlah:masuk, createdAt:ts+1});
+    await saveKey(cfg.key, arr);
+    await adjustSaldoKas(masuk - keluar);
+
+    $('keluar').value = '';
+    $('masuk').value = '';
+    $('keterangan').value = '';
+    render();
+    renderDashboard();
+    showToast('Saldo kas diperbarui.');
+  });
+
+  $('table').addEventListener('click', async e=>{
+    const del = e.target.closest('[data-del]');
+    if(!del) return;
+    const x = cfg.get().find(r=>r.id===del.dataset.del);
+    if(!x) return;
+    const okPw = await askPassword('Masukkan password untuk menghapus transaksi ini.');
+    if(!okPw) return;
+    if(!confirm('Hapus transaksi ini? Saldo Kas akan disesuaikan kembali.')) return;
+    const arr = cfg.get().filter(r=>r.id!==x.id);
+    cfg.set(arr);
+    await saveKey(cfg.key, arr);
+    await adjustSaldoKas(x.jenis==='masuk' ? -x.jumlah : x.jumlah); // balikkan efeknya
+    render();
+    renderDashboard();
+    showToast('Transaksi dihapus, Saldo Kas disesuaikan.');
+  });
+
+  return render;
+}
+['bk-keluar','bk-masuk','pj-keluar','pj-masuk'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', ()=>{ el.value = formatRupiahLive(el.value); });
+});
+var _renderBank = setupLedger({
+  pfx:'bk', key:'bankLedger',
+  get:()=>bankLedger, set:v=>{ bankLedger = v; }
+});
+function setupPinjaman(){
+  const $ = id => document.getElementById('pj-'+id);
+
+  function render(){
+    const list = [...pinjamanLedger].sort((a,b)=> (b.tanggal||'').localeCompare(a.tanggal||'') || (b.createdAt-a.createdAt));
+    const masuk = list.filter(x=>x.jenis==='masuk').reduce((s,x)=>s+x.jumlah,0);
+    const keluar = list.filter(x=>x.jenis==='keluar').reduce((s,x)=>s+x.jumlah,0);
+    $('total-masuk').textContent = rupiah(masuk);
+    $('total-keluar').textContent = rupiah(keluar);
+    $('selisih').textContent = (masuk-keluar<0 ? '-' : '') + rupiah(Math.abs(masuk-keluar));
+    $('table').innerHTML = list.length ? list.map(x=>`
+      <tr>
+        <td>${fmtDate(x.tanggal)}</td>
+        <td><span class="badge ${x.jenis==='masuk'?'badge-lunas':'badge-belum'}">${x.jenis==='masuk'?'Pengembalian':'Pengeluaran'}</span></td>
+        <td>${x.keterangan?escapeHtml(x.keterangan):'-'}</td>
+        <td class="right num">${x.jenis==='masuk'?'+':'-'}${rupiah(x.jumlah)}</td>
+        <td class="right"><button class="btn btn-danger btn-sm" data-del="${x.id}">Hapus</button></td>
+      </tr>`).join('') : `<tr class="empty-row"><td colspan="5">Belum ada transaksi.</td></tr>`;
+  }
+
+  $('btn-add').addEventListener('click', async ()=>{
+    const keluar = parseRupiahLive($('keluar').value);
+    const masuk = parseRupiahLive($('masuk').value);
+    const keterangan = $('keterangan').value.trim();
+    if(keluar<=0 && masuk<=0){ showToast('Isi jumlah pengeluaran atau pengembalian.', true); return; }
+
+    const ts = Date.now();
+    const tanggal = todayISO();
+    if(keluar>0) pinjamanLedger.push({id:uid(), tanggal, jenis:'keluar', keterangan, jumlah:keluar, createdAt:ts});
+    if(masuk>0) pinjamanLedger.push({id:uid(), tanggal, jenis:'masuk', keterangan, jumlah:masuk, createdAt:ts+1});
+    await saveKey('pinjamanLedger', pinjamanLedger);
+    await adjustSaldoKas(masuk - keluar);
+
+    $('keluar').value = '';
+    $('masuk').value = '';
+    $('keterangan').value = '';
+    render();
+    renderDashboard();
+    showToast('Saldo kas diperbarui.');
+  });
+
+  $('table').addEventListener('click', async e=>{
+    const del = e.target.closest('[data-del]');
+    if(!del) return;
+    const x = pinjamanLedger.find(r=>r.id===del.dataset.del);
+    if(!x) return;
+    const okPw = await askPassword('Masukkan password untuk menghapus transaksi ini.');
+    if(!okPw) return;
+    if(!confirm('Hapus transaksi ini? Saldo Kas akan disesuaikan kembali.')) return;
+    pinjamanLedger = pinjamanLedger.filter(r=>r.id!==x.id);
+    await saveKey('pinjamanLedger', pinjamanLedger);
+    await adjustSaldoKas(x.jenis==='masuk' ? -x.jumlah : x.jumlah); // balikkan efeknya
+    render();
+    renderDashboard();
+    showToast('Transaksi dihapus, Saldo Kas disesuaikan.');
+  });
+
+  return render;
+}
+var _renderPinjaman = setupPinjaman();
+function renderLedgerBank(){ if(_renderBank) _renderBank(); }
+function renderLedgerPinjaman(){ if(_renderPinjaman) _renderPinjaman(); }
+
 /* ============ PENGELUARAN ============ */
 document.getElementById('btn-add-pengeluaran').addEventListener('click', async ()=>{
   const tanggal = document.getElementById('p-tanggal').value || todayISO();
@@ -3997,6 +4268,158 @@ document.getElementById('pengeluaran-table').addEventListener('click', async e=>
       });
     });
   }
+</script>
+<script>
+/* ============ CATATAN (menu 13) ============
+   Berdiri sendiri: tiap halaman disimpan sebagai dokumen Firestore TERPISAH
+   (sistem-penjualan/catatan_<id>), jadi tidak menyentuh dokumen data utama,
+   saldo kas, laporan, ataupun backup. */
+(function(){
+  const COL = db.collection('sistem-penjualan');
+  const $ = id => document.getElementById(id);
+  let pages = [], activeId = null, loaded = false, loading = false;
+  let saveTimer = null, dirtyId = null;
+
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const docOf = id => COL.doc('catatan_'+id);
+  const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const BLN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const tglPendek = ms => { const d = new Date(ms||Date.now()); return d.getDate()+' '+BLN[d.getMonth()].slice(0,3)+' '+d.getFullYear(); };
+  const tglPanjang = ms => { const d = new Date(ms||Date.now()); return HARI[d.getDay()]+', '+d.getDate()+' '+BLN[d.getMonth()]+' '+d.getFullYear(); };
+  const active = () => pages.find(p=>p.id===activeId);
+
+  async function persist(page){
+    try{
+      await docOf(page.id).set({type:'catatan', judul:page.judul, isi:page.isi, createdAt:page.createdAt, updatedAt:page.updatedAt});
+      return true;
+    }catch(e){
+      console.error('Gagal menyimpan catatan', e);
+      showToast('Gagal menyimpan catatan. Cek koneksi internet.', true);
+      return false;
+    }
+  }
+  async function flush(){
+    clearTimeout(saveTimer); saveTimer = null;
+    if(!dirtyId) return;
+    const page = pages.find(p=>p.id===dirtyId);
+    dirtyId = null;
+    if(!page) return;
+    setStatus('Menyimpan…');
+    const ok = await persist(page);
+    setStatus(ok ? 'Tersimpan' : 'Gagal menyimpan');
+  }
+  function setStatus(t){ const el = $('cat-status'); if(el) el.textContent = t; }
+
+  function renderList(){
+    $('cat-list').innerHTML = pages.map((p,i)=>`
+      <button class="cat-item ${p.id===activeId?'active':''}" data-id="${p.id}">
+        <span class="cat-no">${i+1}.</span><span class="cat-title">${tglPendek(p.createdAt)}</span>
+      </button>`).join('');
+  }
+  function renderMain(){
+    const main = $('cat-main');
+    const p = active();
+    if(loading){ main.innerHTML = ''; return; }
+    if(!p){
+      main.innerHTML = '';
+      return;
+    }
+    const i = pages.indexOf(p);
+    main.innerHTML = `
+      <div class="cat-bar">
+        <div class="cat-nav">
+          <button class="btn btn-ghost btn-sm" id="cat-prev" ${i===0?'disabled':''}>&larr;</button>
+          <span>Halaman ${i+1} dari ${pages.length}</span>
+          <button class="btn btn-ghost btn-sm" id="cat-next" ${i===pages.length-1?'disabled':''}>&rarr;</button>
+        </div>
+        <button class="btn btn-danger btn-sm" id="cat-del">Hapus Halaman</button>
+      </div>
+      <div class="cat-tgl">${tglPanjang(p.createdAt)}</div>
+      <textarea class="cat-isi" id="cat-isi">${esc(p.isi)}</textarea>
+      <div class="cat-status" id="cat-status">Tersimpan</div>`;
+  }
+  function renderAll(){ renderList(); renderMain(); }
+
+  async function select(id){
+    await flush();
+    activeId = id;
+    renderAll();
+  }
+
+  async function load(){
+    if(loaded || loading) return;
+    loading = true; renderAll();
+    try{
+      const snap = await COL.where('type','==','catatan').get();
+      pages = snap.docs.map(d=>({id:d.id.replace(/^catatan_/,''), ...d.data()}))
+                       .sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+      loaded = true;
+      if(!pages.length){
+        const now = Date.now();
+        const first = {id:newId(), judul:'', isi:'', createdAt:now, updatedAt:now};
+        pages.push(first);
+        persist(first);
+      }
+      if(!activeId) activeId = pages[0].id;
+    }catch(e){
+      console.error('Gagal memuat catatan', e);
+      showToast('Gagal memuat catatan. Cek koneksi internet.', true);
+    }
+    loading = false; renderAll();
+  }
+
+  $('cat-add').addEventListener('click', async ()=>{
+    if(!loaded){ await load(); if(!loaded) return; }
+    await flush();
+    const now = Date.now();
+    const page = {id:newId(), judul:'', isi:'', createdAt:now, updatedAt:now};
+    pages.push(page);
+    activeId = page.id;
+    renderAll();
+    persist(page);
+    const t = $('cat-isi'); if(t) t.focus();
+  });
+
+  $('cat-list').addEventListener('click', e=>{
+    const b = e.target.closest('[data-id]');
+    if(b) select(b.dataset.id);
+  });
+
+  $('cat-main').addEventListener('input', e=>{
+    const p = active(); if(!p) return;
+    if(e.target.id==='cat-isi'){ p.isi = e.target.value; }
+    else return;
+    p.updatedAt = Date.now();
+    dirtyId = p.id;
+    setStatus('Menyimpan…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 700);
+  });
+
+  $('cat-main').addEventListener('click', async e=>{
+    const p = active(); if(!p) return;
+    const i = pages.indexOf(p);
+    if(e.target.closest('#cat-prev') && i>0) select(pages[i-1].id);
+    else if(e.target.closest('#cat-next') && i<pages.length-1) select(pages[i+1].id);
+    else if(e.target.closest('#cat-del')){
+      if(!confirm('Hapus halaman ini beserta isinya? Tindakan ini tidak bisa dibatalkan.')) return;
+      clearTimeout(saveTimer); saveTimer = null; dirtyId = null;
+      try{ await docOf(p.id).delete(); }
+      catch(err){ console.error(err); showToast('Gagal menghapus catatan. Cek koneksi internet.', true); return; }
+      pages = pages.filter(x=>x.id!==p.id);
+      activeId = pages.length ? pages[Math.min(i, pages.length-1)].id : null;
+      renderAll();
+      showToast('Halaman dihapus.');
+    }
+  });
+
+  // Muat data hanya saat menu Catatan benar-benar terbuka (setelah password benar)
+  const viewEl = document.getElementById('view-catatan');
+  new MutationObserver(()=>{ if(viewEl.classList.contains('active')) load(); })
+    .observe(viewEl, {attributes:true, attributeFilter:['class']});
+  window.addEventListener('beforeunload', ()=>{ if(dirtyId){ const p = pages.find(x=>x.id===dirtyId); if(p) persist(p); } });
+})();
 </script>
 </body>
 </html>
