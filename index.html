@@ -350,6 +350,10 @@
           <div class="tag">Modal Pertama 🔒</div>
           <div class="val" id="d-modal-pertama">********</div>
         </div>
+        <div class="card success" id="nilai-aset-card" style="cursor:pointer;user-select:none;" title="Klik dua kali untuk buka dengan password">
+          <div class="tag">Nilai Aset 🔒</div>
+          <div class="val" id="d-nilai-aset">********</div>
+        </div>
       </div>
 
       <div class="panel">
@@ -1409,6 +1413,8 @@ let labaValueCache = 0;
 // suntikan & pengembalian baru + transaksi baru (faktur/pembelian/pengeluaran) yang masuk SETELAH titik kunci ini.
 let kasProfile = {saldoTerkunci:0, snapshotMasuk:0, snapshotPembelian:0, snapshotPengeluaran:0, suntikanBaru:0, pengembalianBaru:0, modalPertama:21602500, modalPertamaLocked:true};
 let modalPertamaRevealed = false;
+let nilaiAsetRevealed = false;
+let nilaiAsetValueCache = 0;
 let cart = [];
 let lastSavedInvoice = null;
 let editingKode = null;
@@ -1793,6 +1799,10 @@ function renderDashboard(){
   document.getElementById('d-saldo-kas').textContent = rupiah(saldoKas);
   document.getElementById('d-modal-pertama').textContent = modalPertamaRevealed ? rupiah(kasProfile.modalPertama||0) : '********';
 
+  // Nilai Aset = Saldo Kas Seharusnya Ada di Rekening + Piutang (Belum Lunas) + Total Modal Barang (Stok)
+  nilaiAsetValueCache = saldoKas + piutang + modalBarang;
+  document.getElementById('d-nilai-aset').textContent = nilaiAsetRevealed ? rupiah(nilaiAsetValueCache) : '********';
+
   const dTotalToko = document.getElementById('d-total-toko');
   if(dTotalToko){
     const trows = computeTrendRows();
@@ -1885,6 +1895,19 @@ document.getElementById('modal-pertama-card').addEventListener('dblclick', async
   if(ok){
     modalPertamaRevealed = true;
     document.getElementById('d-modal-pertama').textContent = rupiah(kasProfile.modalPertama||0);
+  }
+});
+
+document.getElementById('nilai-aset-card').addEventListener('dblclick', async ()=>{
+  if(nilaiAsetRevealed){
+    nilaiAsetRevealed = false;
+    document.getElementById('d-nilai-aset').textContent = '********';
+    return;
+  }
+  const ok = await askPassword('Masukkan password untuk melihat Nilai Aset.');
+  if(ok){
+    nilaiAsetRevealed = true;
+    document.getElementById('d-nilai-aset').textContent = rupiah(nilaiAsetValueCache);
   }
 });
 
